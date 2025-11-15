@@ -1,16 +1,15 @@
 interface FaqButtonProps {
-  className?: string;
-  content?: string;
+  content: string;
 }
 
-function FaqButton({ className = "", content = "Check out the parent guide" }: FaqButtonProps) {
+function FaqButton({ content }: FaqButtonProps) {
   return (
-    <div className={className}>
+    <div className="bg-[#091e8b] shadow-[8px_8px_0px_0px_#0a1861] flex items-start px-5 py-12 h-[168px] w-[467px]">
       <div className="flex gap-1 items-center">
         <div className="relative w-12 h-12 overflow-hidden">
           <img 
             alt="" 
-            className="absolute -inset-1 w-full h-full object-cover" 
+            className="absolute -inset-1 w-full h-full object-cover select-none" 
             src="/icons/plus.svg" 
           />
         </div>

@@ -316,7 +316,7 @@ function App() {
         </div>
       </section>
 
-      <section className="bg-[#384fbc] pt-[20vw] z-10">
+      <section className="bg-[#384fbc] pt-[25vw] z-10">
         <div className="flex flex-col gap-8 items-center px-8 max-w-7xl mx-auto">
           <h2 
             className="text-[#f1ebff] text-6xl font-bold text-center mb-8 font-amatic"

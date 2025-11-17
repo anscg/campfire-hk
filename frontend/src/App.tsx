@@ -113,6 +113,7 @@ function App() {
                 >
                   <img src="/icons/email.svg" alt="" className="w-6 h-5 flex-shrink-0 select-none" />
                   <input
+                    required
                     ref={emailRef}
                     value={email}
                     onChange={e => setEmail(e.target.value)}

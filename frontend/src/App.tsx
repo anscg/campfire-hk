@@ -376,6 +376,9 @@ function App() {
               titleImageSrc="/branding/logo-counterspell.png"
               titleImageAlt="Counterspell logo"
               description="Our first worldwide game jam! In 50 cities including Toronto, Boston, & Singapore"
+              videoButtonText='Watch the video'
+              videoUrl="https://www.youtube.com/watch?v=H5RPsCMl3uM"
+              btnColorPair={["#FF4186", "#41DDFF"]}
             />
 
             <StoryCard 
@@ -384,6 +387,9 @@ function App() {
               titleImageSrc="/branding/logo-scrapyard.svg"
               titleImageAlt="Scrapyard logo"
               description="Build stupid stuff, get stupid prizes! In-person hackathon in 70+ cities."
+              videoButtonText='Check out vid!'
+              videoUrl="https://www.youtube.com/watch?v=8iM1W8kXrQA"
+              btnColorPair={["#AF8D67", "#956F43"]}
             />
 
             <StoryCard 
@@ -392,6 +398,9 @@ function App() {
               titleImageSrc="/branding/logo-daydream.png"
               titleImageAlt="Daydream logo"
               description="Game jam in 100 cities worldwide -- from London to NYC to Penang!"
+              videoButtonText='Video here!'
+              videoUrl="https://www.youtube.com/watch?v=vvdoW2gh9YU"
+              btnColorPair={["#3F709A", "#FFFDCB"]}
             />
           </div>
         </div>

@@ -1,14 +1,17 @@
-interface StoryCardProps {
+function StoryCard({ imageSrc, imageAlt, titleImageSrc, titleImageAlt, description, videoUrl, videoButtonText, btnColorPair }: {
   imageSrc: string;
   imageAlt: string;
   titleImageSrc: string;
   titleImageAlt: string;
   description: string;
-}
-
-function StoryCard({ imageSrc, imageAlt, titleImageSrc, titleImageAlt, description }: StoryCardProps) {
+  videoUrl: string;
+  videoButtonText: string;
+  btnColorPair: [string, string];
+}) {
+  const [btnBg, btnShadow] = btnColorPair;
+  
   return (
-    <div className="bg-white p-6 flex items-center flex-1 basis-0 flex-col gap-4 lg:gap-2 h-[557px] shadow-[16px_16px_0px_0px_rgba(0,0,0,0.3)]">
+    <div className="bg-white relative p-6 pb-24 flex items-center flex-1 basis-0 flex-col gap-4 lg:gap-2 shadow-[16px_16px_0px_0px_rgba(0,0,0,0.3)]">
       <img 
         src={imageSrc}
         alt={imageAlt}
@@ -34,6 +37,14 @@ function StoryCard({ imageSrc, imageAlt, titleImageSrc, titleImageAlt, descripti
           {description}
         </p>
       </div>
+
+      <button
+        className="absolute bottom-0 cursor-pointer block rounded-2xl p-4 px-6 font-amatic text-white font-bold text-5xl transition-transform hover:scale-105 active:scale-95 translate-y-6 shadow"
+        onClick={() => window.open(videoUrl, "_blank")}
+        style={{ background: btnBg }}
+      >
+        {videoButtonText}
+      </button>
     </div>
   );
 }

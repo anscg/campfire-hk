@@ -193,7 +193,7 @@ function App() {
 
       <section className="relative pt-[13vw] pb-96 bg-[url(/backgrounds/underwater-gradient.png)] bg-cover">
         <div className="absolute top-0 left-0 w-screen h-[200px] bg-gradient-to-b from-[#004b2a] to-transparent pointer-events-none"></div>
-        <div className="absolute top-[30px] left-0 w-full scale-125 pointer-events-none">
+        <div className="absolute top-[30px] left-0 w-full scale-125 pointer-events-none z-20">
           <img src="/decorative/vines.png" alt="" className="w-full h-full object-cover select-none" />
         </div>
 
@@ -220,33 +220,37 @@ function App() {
         <div id="steps" className="relative z-10 flex flex-col gap-24 items-center px-12 max-w-7xl mx-auto">
           <Step 
             stepNumber={1}
-            title="Sign up for a Campfire near you"
             imageSrc="/ui/step-signup.png"
             imageAlt="Step 1"
-          />
+          >
+            Sign up for a <span className="text-[#F77034]">Campfire</span><br /> near you
+          </Step>
 
           <Step 
             stepNumber={2}
-            title="Grab friends (or make new friends!) and form a team of 2-3"
             imageSrc="/ui/step-team.png"
             imageAlt="Step 2"
             isReversed={true}
-          />
+          >
+            Grab <span className="text-[#F77034]">friends</span> (or make new friends!) and form a <span className="text-[#F77034]">team of 2-3</span>
+          </Step>
 
           <Step 
             stepNumber={3}
-            title="Learn from workshops, enjoy free food and merch!"
             imageSrc="/ui/step-workshops.png"
             imageAlt="Step 3"
-          />
+          >
+            Learn from <span className="text-[#F77034]">workshops</span>, enjoy free food and merch!
+          </Step>
 
           <Step 
             stepNumber={4}
-            title="Build your game & publish it online!"
             imageSrc="/ui/step-team.png"
             imageAlt="Step 4"
             isReversed={true}
-          />
+          >
+            <span className="text-[#F77034]">Build</span> your game & <span className="text-[#F77034]">publish</span> it online!
+          </Step>
         </div>
       </section>
 

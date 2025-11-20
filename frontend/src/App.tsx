@@ -466,7 +466,7 @@ function App() {
 
           <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
             <div className="relative">
-              <div className="absolute inset-0 lg:w-[608px] pointer-events-none flex flex-col">
+              <div className="absolute inset-0 lg:w-[608px] pointer-events-none flex flex-col min-h-[105%]">
                 <img src="/ui/woodboard-1-top.svg" alt="" className="w-full flex-shrink-0 select-none" />
                 <div className="bg-[#AD684F] flex-1 w-full py-4"></div>
                 <img src="/ui/woodboard-1-bottom.svg" alt="" className="w-full flex-shrink-0 select-none" />
@@ -502,9 +502,9 @@ function App() {
             </div>
 
             <div className="relative w-full lg:w-auto">
-              <div className="absolute inset-0 lg:w-[608px] pointer-events-none flex flex-col">
+              <div className="absolute inset-0 lg:w-[608px] pointer-events-none flex flex-col min-h-[105%]">
                 <img src="/ui/woodboard-2-top.svg" alt="" className="w-full flex-shrink-0 select-none" />
-                <div className="bg-[#AD684F] flex-1 w-full py-4"></div>
+                <div className="bg-[#AD684F] flex-1 w-full"></div>
                 <img src="/ui/woodboard-2-bottom.svg" alt="" className="w-full flex-shrink-0 select-none" />
               </div>
               

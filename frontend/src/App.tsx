@@ -90,7 +90,7 @@ function App() {
             />
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-center w-full gap-8 pb-24 z-10 h-full pt-16 md:pt-0 md:h-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center w-full gap-8 pb-16 z-10 h-full pt-16 md:pt-0 md:h-auto">
             <div className="flex flex-col gap-4 w-full md:w-[648px]">
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-4">
@@ -132,45 +132,57 @@ function App() {
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row items-center gap-2">
-                <div 
-                  className={clsx(
-                    "bg-[#f9e2ca] border-4 border-[#d5a16c] rounded-[20px] px-4 md:px-8 py-4 flex items-center gap-3 md:gap-6 w-full transform md:rotate-[-1.2deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)]",
-                    "transition-transform hover:scale-105"
-                  )}
-                >
-                  <img src="/icons/email.svg" alt="" className="w-6 h-5 flex-shrink-0 select-none" />
-                  <input
-                    required
-                    ref={emailRef}
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    type="email"
-                    className="text-[#854d16] text-2xl md:text-4xl font-bold truncate bg-transparent border-none outline-none flex-1 cursor-text font-ember-and-fire"
-                    placeholder="you@hackclub.com"
-                    defaultValue="you@hackclub.com"
-                  />
-                </div>
-                
-                <button 
-                  className="bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 hover:scale-105 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)] cursor-pointer active:scale-95"
-                  type="button"
-                  onClick={() => {
-                    if (!emailRef?.current?.reportValidity() || !email)
-                      return;
-
-                    window.open(
-                      `https://forms.hackclub.com/t/a3QSt8MuvHus?email=${encodeURIComponent(email)}`,
-                      "_blank"
-                    );
-                  }}  
-                >
-                  <p 
-                    className="text-[#8d3f34] text-3xl md:text-5xl font-normal font-dream-planner"
+              <div className='flex flex-col gap-4'>
+                <div className="flex flex-col md:flex-row items-center gap-2">
+                  <div 
+                    className={clsx(
+                      "bg-[#f9e2ca] border-4 border-[#d5a16c] rounded-[20px] px-4 md:px-8 py-4 flex items-center gap-3 md:gap-6 w-full transform md:rotate-[-1.2deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)]",
+                      "transition-transform hover:scale-105"
+                    )}
                   >
-                   ORGANIZE!
-                  </p>
-                </button>
+                    <img src="/icons/email.svg" alt="" className="w-6 h-5 flex-shrink-0 select-none" />
+                    <input
+                      required
+                      ref={emailRef}
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      type="email"
+                      className="text-[#854d16] text-2xl md:text-4xl font-bold truncate bg-transparent border-none outline-none flex-1 cursor-text font-ember-and-fire"
+                      placeholder="you@hackclub.com"
+                      defaultValue="you@hackclub.com"
+                    />
+                  </div>
+                  
+                  <button 
+                    className="bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 hover:scale-105 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)] cursor-pointer active:scale-95"
+                    type="button"
+                  >
+                    <p 
+                      className="text-[#8d3f34] text-3xl md:text-5xl font-normal font-dream-planner"
+                    >
+                    ORGANIZE!
+                    </p>
+                  </button>
+                </div>
+
+                <div className='font-ember-and-fire text-white text-4xl pl-2 -translate-y-1 md:rotate-[-1.2deg]' style={{
+                  textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
+                }}>
+                  ...or <span
+                    className='underline inline-block cursor-pointer transition-transform hover:scale-105 active:scale-95'
+                    onClick={() => {
+                      if (!emailRef?.current?.reportValidity() || !email)
+                        return;
+
+                      window.open(
+                        `https://forms.hackclub.com/t/a3QSt8MuvHus?email=${encodeURIComponent(email)}`,
+                        "_blank"
+                      );
+                    }}
+                  >
+                    RSVP
+                  </span> for one
+                </div>
               </div>
             </div>
 

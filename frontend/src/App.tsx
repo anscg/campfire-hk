@@ -49,7 +49,7 @@ function App() {
       </div>
 
       <div className="w-full h-screen">
-        <header className="relative h-[60px] md:h-[115px] bg-[#45b4f5] flex justify-end items-center content-center md:pr-16">
+        <header className="relative h-[60px] md:h-[115px] bg-[#45b4f5] justify-end items-center content-center md:pr-16 hidden sm:flex">
           <nav className="flex gap-4 w-full justify-between px-8 md:px-0 text-2xl md:gap-12 items-center md:justify-end text-white md:text-5xl font-bold font-ember-and-fire">
             <NavbarLink onClick={() => scrollToSection('steps')}>How to organize</NavbarLink>
             {/* <NavbarLink onClick={() => scrollToSection('map')}>Map</NavbarLink> */}
@@ -105,11 +105,11 @@ function App() {
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-4">
                   <a href='https://hackclub.com' className='transition-transform hover:scale-105 active:scale-95'>
-                  <img 
-                    src="/decorative/hack-club-flag.png" 
-                    alt="Hack Club" 
-                    className="w-[151px] h-[53px] object-cover transform rotate-[-4.8deg] select-none"
-                  />
+                    <img 
+                      src="/decorative/hack-club-flag.png" 
+                      alt="Hack Club" 
+                      className="w-[151px] h-[53px] object-cover transform rotate-[-4.8deg] select-none"
+                    />
                   </a>
                 </div>
                 
@@ -341,15 +341,15 @@ function App() {
           <div className='flex items-center md:block md:relative'>
             <img src='/backgrounds/world-map-right.png' alt='' className='h-full hidden md:block' />
             <div className='md:absolute md:top-0 md:left-0 py-12 md:py-16 md:pb-0 rounded-xl shadow-[0_8px_20px_rgba(0,0,0,0.25)] md:rounded-none md:shadow-none md:pt-30 pl-6 md:pl-12 pr-6 md:pr-64 text-xl bg-[#EAD6BE] border-[#DCA87E] border-4 md:border-0 md:bg-transparent md:text-2xl flex flex-col gap-6 font-solway'>
-              <h1>Dear Hackers, Musicians, and Artists,</h1>
+              <h1>Dear organizers,</h1>
               <p>
-                Welcome to Hack Club's newest adventure. This winter we invite you to join us for Campfire, the world's biggest Game Jam happening simultaneously in 100 cities.
+                Imagine making an event 
               </p>
 
-              <p><b>Hack Club wants you to make a game this winter.</b></p>
+              <p><b>Make a game next February 7-8, 2026</b></p>
 
               <p>
-                Don't consider yourself a game dev? No problem - we have tons of online and in-person workshops for you to make your first game!
+                Maybe this is your first time. No problem - we have tons of online and in-person workshops for you to make your first game!
               </p>
 
               <p>
@@ -618,7 +618,7 @@ function App() {
               <a href="https://hackclub.com/" target="_blank" className="hover:underline">Hack Club</a>
               <a href="https://hackclub.com/slack" target="_blank" className="hover:underline">Slack</a>
               <a href="https://hackclub.com/clubs" target="_blank" className="hover:underline">Clubs</a>
-              <a href="https://hackclub.com/hackathons" target="_blank" className="hover:underline">Hackathons</a>
+              <a href="https://hackclub.com/conduct/" target="_blank" className="hover:underline">Code of Conduct</a>
             </div>
             
             <div className="flex-1 text-left">

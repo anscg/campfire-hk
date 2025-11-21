@@ -109,6 +109,7 @@ function App() {
                     alt="Hack Club" 
                     className="w-[151px] h-[53px] object-cover transform rotate-[-4.8deg] select-none"
                   />
+                  </a>
                 </div>
                 
                 <div className="transform md:rotate-[-2.97deg]">

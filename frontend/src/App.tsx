@@ -59,9 +59,9 @@ function App() {
           </nav>
         </header>
 
-        <section className="relative h-full flex items-end pb-32 2xl:pb-48 px-6 md:px-16 md:px-24 2xl:px-32 bg-[url(/backgrounds/blue-sky.png)] bg-center bg-cover">
+        <section className="relative h-full flex items-end pb-32 2xl:pb-48 px-6 md:px-16 md:px-24 2xl:px-32 bg-[url(/backgrounds/blue-sky.webp)] bg-center bg-cover">
           <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-            <img src="/backgrounds/sky-shine.png" alt="" className="w-full h-full object-cover select-none" />
+            <img src="/backgrounds/sky-shine.webp" alt="" className="w-full h-full object-cover select-none" />
           </div>
 
           <div
@@ -83,7 +83,7 @@ function App() {
 
           <div className="absolute bottom-0 md:bottom-[160px] flex items-end md:block left-0 w-full h-full md:animate-cloud-float-right pointer-events-none">
             <img
-              src="/backgrounds/bottom-cloud.png"
+              src="/backgrounds/bottom-cloud.webp"
               alt=""
               className="select-none"
               style={{
@@ -245,7 +245,7 @@ function App() {
         </div>
 
         <div className="absolute bottom-[30px] left-0 w-full h-[800px] z-0 pointer-events-none">
-          <img src="/decorative/clouds-3.png" alt="" className="w-full h-full object-cover select-none object-top" />
+          <img src="/decorative/clouds-3.webp" alt="" className="w-full h-full object-cover select-none object-top" />
         </div>
         
         <div className="absolute bottom-0 left-0 w-full h-[613px] z-0 pointer-events-none">
@@ -290,7 +290,7 @@ function App() {
 
           <Step 
             stepNumber={2}
-            imageSrc="/ui/step-team.png"
+            imageSrc="/ui/step-team.jpeg"
             imageAlt="Step 2"
             isReversed={true}
           >
@@ -333,13 +333,13 @@ function App() {
 
       <section className="relative h-full md:h-[800px] pb-8 px-8 z-30 -mt-96">
         <div className="absolute top-0 left-0 w-full h-[900px] pointer-events-none">
-          <img src="/decorative/clouds-3-symmetric.png" alt="" className="w-full h-full select-none" />
+          <img src="/decorative/clouds-3-symmetric.webp" alt="" className="w-full h-full select-none" />
         </div>
 
         <div id="letter" className="relative w-full h-full z-50 translate-y-20 md:translate-y-64 flex justify-center">
           <img src='/backgrounds/world-map-left.png' alt='' className='h-full hidden md:block' />
           <div className='flex items-center md:block md:relative'>
-            <img src='/backgrounds/world-map-right.png' alt='' className='h-full hidden md:block' />
+            <img src='/backgrounds/world-map-right.webp' alt='' className='h-full hidden md:block' />
             <div className='md:absolute md:top-0 md:left-0 py-12 md:py-16 md:pb-0 rounded-xl shadow-[0_8px_20px_rgba(0,0,0,0.25)] md:rounded-none md:shadow-none md:pt-30 pl-6 md:pl-12 pr-6 md:pr-64 text-xl bg-[#EAD6BE] border-[#DCA87E] border-4 md:border-0 md:bg-transparent md:text-2xl flex flex-col gap-6 font-solway'>
               <h1>Dear organizers,</h1>
               <p>
@@ -365,10 +365,10 @@ function App() {
         </div>
       </section>
 
-      <section className="relative py-24 bg-[#384fbc] bg-cover bg-center z-20 pt-90 md:pt-180 -mt-[25vw] pb-0 bg-[url(/backgrounds/blue-gradient.png)]">
+      <section className="relative py-24 bg-[#384fbc] bg-cover bg-center z-20 pt-90 md:pt-180 -mt-[25vw] pb-0 bg-[url(/backgrounds/blue-gradient.webp)]">
         <div className="absolute bottom-48 md:bottom-0 left-0 w-full pointer-events-none scale-250 md:scale-100">
           <img
-            src="/decorative/clouds-1.png"
+            src="/decorative/clouds-1.webp"
             alt=""
             className="w-full h-full object-contain select-none"
           />
@@ -376,7 +376,7 @@ function App() {
 
         <div className="absolute bottom-48 left-32 md:bottom-0 md:left-0 w-[80vw] pointer-events-none scale-250 md:scale-100">
           <img 
-            src="/decorative/moon-composite.png" 
+            src="/decorative/moon-composite.webp" 
             alt="" 
             className="w-full h-full object-contain transform rotate-[346deg] select-none"
           />
@@ -384,7 +384,7 @@ function App() {
 
         <div className="absolute bottom-[-160px] md:bottom-[64px] translate-y-full scale-300 md:scale-105 left-0 w-full pointer-events-none">
           <img
-            src="/decorative/puzzle-composite.png"
+            src="/decorative/puzzle-composite.webp"
             alt=""
             className="w-full h-full object-cover select-none"
           />
@@ -415,7 +415,7 @@ function App() {
             />
 
             <StoryCard 
-              imageSrc="/stories/scrapyard.png"
+              imageSrc="/stories/scrapyard.webp"
               imageAlt=""
               titleImageSrc="/branding/logo-scrapyard.svg"
               titleImageAlt="Scrapyard logo"
@@ -454,7 +454,7 @@ function App() {
           
           <div className="flex flex-col md:flex-row gap-16 md:gap-5 w-full justify-between">
             <GameCard 
-              imageSrc="/games/office-click-clack.png"
+              imageSrc="/games/office-click-clack.webp"
               imageAlt="Office Click Clack"
               title="Office Click Clack"
               author="bunnyguy - Daydream DFW"
@@ -462,7 +462,7 @@ function App() {
             />
 
             <GameCard 
-              imageSrc="/games/zero-sum.png"
+              imageSrc="/games/zero-sum.webp"
               imageAlt="Zero Sum"
               title="Zero Sum"
               author="ARandomPsi - Daydream SV"
@@ -470,7 +470,7 @@ function App() {
             />
 
             <GameCard 
-              imageSrc="/games/macuahuitl.png"
+              imageSrc="/games/macuahuitl.webp"
               imageAlt="Macuahuitl"
               title="Macuahuitl"
               author="scoopish - Daydream Global"
@@ -598,7 +598,7 @@ function App() {
 
       <footer className="relative flex flex-col z-0 -mt-80">
         <img
-          src="/backgrounds/footer-background.png"
+          src="/backgrounds/footer-background.webp"
           alt=""
           className="w-full h-[50vw] object-bottom object-cover select-none scale-105"
         />

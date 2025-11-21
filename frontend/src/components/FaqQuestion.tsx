@@ -1,11 +1,9 @@
 import { useState } from 'react';
 
-interface FaqQuestionProps {
+function FaqQuestion({ question, children }: {
   question: string;
   children: React.ReactNode;
-}
-
-function FaqQuestion({ question, children }: FaqQuestionProps) {
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpanded = () => {
@@ -34,7 +32,7 @@ function FaqQuestion({ question, children }: FaqQuestionProps) {
         }`}
       >
         <div className="bg-[#6b2f26] shadow-[8px_8px_0px_0px_#5a251e] px-12 py-8 -mt-2">
-          <p className="text-white text-2xl leading-relaxed font-ember-and-fire font-bold">
+          <p className="text-white text-2xl leading-relaxed font-source-serif-pro">
             {children}
           </p>
         </div>

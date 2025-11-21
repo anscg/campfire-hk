@@ -239,7 +239,7 @@ function App() {
           <img src="/decorative/vines.png" alt="" className="w-full h-full object-cover select-none" />
         </div>
 
-        <div className="absolute bottom-[500px] left-0 w-full h-[800px] z-0 pointer-events-none">
+        <div className="absolute bottom-0 left-0 w-full h-[800px] z-0 pointer-events-none">
           <img src="/decorative/clouds-3.png" alt="" className="w-full h-full object-cover select-none" />
         </div>
         
@@ -247,7 +247,7 @@ function App() {
           <img src="/backgrounds/seafloor.png" alt="" className="w-full h-full object-cover select-none" />
         </div>
         
-        <div className="absolute bottom-[400px] left-32 w-[569px] h-[676px] pointer-events-none">
+        <div className="absolute bottom-[200px] left-32 w-[569px] h-[676px] pointer-events-none">
           <img 
             src="/characters/astronaut.png" 
             alt="" 
@@ -327,8 +327,8 @@ function App() {
       </section>
 
       <section className="relative h-full md:h-[800px] pb-8 px-8 z-30 -mt-96">
-        <div className="absolute top-0 left-0 w-full h-full from-transparent to-[#022994] bg-gradient-to-b pointer-events-none">
-          <img src="/decorative/clouds-3.png" alt="" className="w-full h-full object-cover select-none" />
+        <div className="absolute top-0 left-0 w-full h-[900px] from-transparent to-[#022994] bg-gradient-to-b pointer-events-none">
+          <img src="/decorative/clouds-3-symmetric.png" alt="" className="w-full h-full select-none" />
         </div>
 
         <div id="letter" className="relative w-full h-full z-50 translate-y-20 md:translate-y-64 flex justify-center">
@@ -360,7 +360,7 @@ function App() {
         </div>
       </section>
 
-      <section className="relative py-24 bg-[#384fbc] bg-cover bg-center z-20 pt-90 md:pt-130 pb-60 bg-[url(/backgrounds/blue-gradient.png)]">
+      <section className="relative py-24 bg-[#384fbc] bg-cover bg-center z-20 pt-90 md:pt-130 pb-0 bg-[url(/backgrounds/blue-gradient.png)]">
         <div className="absolute bottom-48 md:bottom-0 left-0 w-full pointer-events-none scale-250 md:scale-100">
           <img
             src="/decorative/clouds-1.png"
@@ -437,7 +437,7 @@ function App() {
       </section>
 
       <section className="bg-[#384fbc] pt-[40vw] md:pt-[25vw] z-10">
-        <div className="flex flex-col gap-8 items-center px-8 max-w-7xl mx-auto">
+        <div className="flex flex-col gap-8 items-center px-8 max-w-7xl mx-auto pb-16">
           <h2 
             className="text-[#f1ebff] text-6xl font-bold text-center mb-8 font-ember-and-fire"
             style={{ 

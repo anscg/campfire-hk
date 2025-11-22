@@ -625,12 +625,16 @@ function App() {
             made with ♥ by Hack Club teens
           </p>
 
-          <div className="mt-8 flex flex-col md:flex-row gap-16 max-w-5xl mx-auto px-4">
+          <div className="mt-8 flex flex-col md:flex-row gap-16 max-w-6xl mx-auto px-4">
             <div className="flex flex-col items-center md:items-end gap-4 text-white text-4xl md:text-3xl font-ember-and-fire font-bold z-20">
               <a href="https://hackclub.com/" target="_blank" className="hover:underline">Hack Club</a>
               <a href="https://hackclub.com/slack" target="_blank" className="hover:underline">Slack</a>
               <a href="https://hackclub.com/clubs" target="_blank" className="hover:underline">Clubs</a>
               <a href="https://hackclub.com/conduct/" target="_blank" className="hover:underline">Code of Conduct</a>
+            
+              <p className="text-white text-sm md:text-md text-right max-w-96 font-source-serif-pro">
+                © 2026 Hack Club. 501(c)(3) nonprofit (EIN: 81-2908499)
+              </p>
             </div>
             
             <div className="flex-1 text-left">

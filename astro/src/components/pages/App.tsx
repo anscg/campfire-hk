@@ -254,12 +254,12 @@ function App() {
                   <button 
                     className="bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 hover:scale-105 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)] cursor-pointer active:scale-95"
                     type="button"
-                    onClick={() => openWithEmail(FORM_URL_ORGANIZER_APPLICATION)}
+                    onClick={() => openWithEmail(FORM_URL_RSVP)}
                   >
                     <p 
                       className="text-[#8d3f34] text-3xl md:text-5xl font-normal font-dream-planner"
                     >
-                    ORGANIZE!
+                    RSVP!
                     </p>
                   </button>
                 </div>
@@ -269,10 +269,10 @@ function App() {
                 }}>
                   ...or <span
                     className='underline inline-block cursor-pointer transition-transform hover:scale-105 active:scale-95'
-                    onClick={() => openWithEmail(FORM_URL_RSVP)}
+                    onClick={() => openWithEmail(FORM_URL_ORGANIZER_APPLICATION)}
                   >
-                    RSVP
-                  </span> for one
+                    organize
+                  </span> your own event!
                 </div>
               </div>
             </div>

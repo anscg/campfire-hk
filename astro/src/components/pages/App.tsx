@@ -257,7 +257,7 @@ function App() {
                     onClick={() => openWithEmail(FORM_URL_SIGN_UP)}
                   >
                     <p 
-                      className="text-[#8d3f34] text-3xl md:text-5xl font-normal font-dream-planner"
+                      className="text-[#8d3f34] text-3xl md:text-5xl font-normal font-dream-planner whitespace-nowrap"
                     >
                     SIGN UP!
                     </p>

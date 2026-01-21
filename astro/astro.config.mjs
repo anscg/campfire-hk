@@ -16,7 +16,12 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
     ssr: {
-      external: ['@prisma/client']
+      external: ['@prisma/client', /^\.\.?\/.*generated\/prisma/]
+    },
+    build: {
+      rollupOptions: {
+        external: [/@prisma\/client/]
+      }
     }
   },
 

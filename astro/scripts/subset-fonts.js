@@ -19,8 +19,8 @@ function extractChineseChars() {
     const filePath = path.join(__dirname, '..', file);
     const content = fs.readFileSync(filePath, 'utf8');
     
-    // Match all CJK Unified Ideographs and related blocks
-    const matches = content.match(/[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]/g);
+    // Match all CJK Unified Ideographs and related blocks, plus fullwidth punctuation
+    const matches = content.match(/[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF\uFF01\uFF1A\uFF1F\uFF08\uFF09\u3001\u3002\uFF0C\u300C\u300D\u3008\u3009\uFF3B\uFF1B]/g);
     if (matches) {
       matches.forEach(char => chineseChars.add(char));
     }

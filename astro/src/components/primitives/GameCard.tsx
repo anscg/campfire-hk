@@ -18,6 +18,7 @@ function GameCard({ imageSrc, imageAlt, title, author, href }: GameCardProps) {
           src={imageSrc}
           alt={imageAlt}
           className="w-[391px] h-[263px] shadow-[12px_12px_0px_0px_rgba(0,0,0,0.25)] object-cover hover:scale-105 transition-transform"
+          loading="lazy"
         />
       </a>
       <div className="text-center text-[#d7cfeb]">

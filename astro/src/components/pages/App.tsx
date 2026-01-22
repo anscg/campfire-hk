@@ -309,15 +309,15 @@ function App({ events }: { events: EventLocation[] }) {
         <div className="pt-[8vw] xl:pt-[13vw]"></div>
         <div className="absolute top-0 left-0 w-screen h-[200px] bg-gradient-to-b from-[#004b2a] to-transparent pointer-events-none"></div>
         <div className="absolute top-0 xl:top-[30px] left-0 w-full scale-125 pointer-events-none z-50">
-          <img src="/decorative/vines.webp" alt="" className="w-full h-full object-cover select-none" />
+          <img src="/decorative/vines.webp" alt="" className="w-full h-full object-cover select-none" loading="lazy" />
         </div>
 
         <div className="absolute bottom-[30px] left-0 w-full h-[800px] z-0 pointer-events-none">
-          <img src="/decorative/clouds-3.webp" alt="" className="w-full h-full object-cover select-none object-top" />
+          <img src="/decorative/clouds-3.webp" alt="" className="w-full h-full object-cover select-none object-top" loading="lazy" />
         </div>
         
         <div className="absolute bottom-0 left-0 w-full h-[613px] z-0 pointer-events-none">
-          <img src="/backgrounds/seafloor.webp" alt="" className="w-full h-full object-cover select-none" />
+          <img src="/backgrounds/seafloor.webp" alt="" className="w-full h-full object-cover select-none" loading="lazy" />
         </div>
         
         <div className="absolute bottom-[200px] left-32 w-[569px] h-[676px] pointer-events-none">
@@ -325,6 +325,7 @@ function App({ events }: { events: EventLocation[] }) {
             src="/compressed/characters/astronaut.webp" 
             alt="" 
             className="w-full h-full object-cover transform rotate-[172deg] scale-y-[-1] select-none"
+            loading="lazy"
           />
         </div>
         
@@ -332,19 +333,20 @@ function App({ events }: { events: EventLocation[] }) {
           <img
             src="/compressed/decorative/cogs-top-right.webp" alt=""
             className="w-full h-full object-contain select-none"
+            loading="lazy"
           />
         </div>
 
         <div className="absolute invisible md:visible top-[55%] z-45 left-0 w-[260px] pointer-events-none">
-          <img src="/compressed/decorative/cogs-mid-left.webp" alt="" className="w-full h-full object-contain select-none" />
+          <img src="/compressed/decorative/cogs-mid-left.webp" alt="" className="w-full h-full object-contain select-none" loading="lazy" />
         </div>
         
         <div className="absolute invisible md:visible top-[75%] z-45 right-0 translate-x-20 w-[280px] pointer-events-none">
-          <img src="/compressed/decorative/single-cog-1.webp" alt="" className="w-full h-full object-contain select-none" />
+          <img src="/compressed/decorative/single-cog-1.webp" alt="" className="w-full h-full object-contain select-none" loading="lazy" />
         </div>
 
         <div className="absolute invisible md:visible top-[82%] z-45 left-0 translate-x-10 w-[280px] pointer-events-none">
-          <img src="/compressed/decorative/single-cog-2.webp" alt="" className="w-full h-full object-contain select-none" />
+          <img src="/compressed/decorative/single-cog-2.webp" alt="" className="w-full h-full object-contain select-none" loading="lazy" />
         </div>
 
         <div id="steps" className="relative z-40 flex flex-col gap-24 items-center px-12 max-w-7xl mx-auto pt-12 md:pt-0">
@@ -401,13 +403,13 @@ function App({ events }: { events: EventLocation[] }) {
 
       <section className="relative h-full md:h-[800px] pb-8 px-8 z-30 -mt-96">
         <div className="absolute top-0 left-0 w-full h-[900px] pointer-events-none">
-          <img src="/decorative/clouds-3-symmetric.webp" alt="" className="w-full h-full select-none" />
+          <img src="/decorative/clouds-3-symmetric.webp" alt="" className="w-full h-full select-none" loading="lazy" />
         </div>
 
         <div id="letter" className="relative w-full h-full z-50 translate-y-20 min-[1200px]:translate-y-64 flex justify-center">
-          <img src='/compressed/backgrounds/world-map-left.webp' alt='' className='h-full hidden min-[1200px]:block' />
+          <img src='/compressed/backgrounds/world-map-left.webp' alt='' className='h-full hidden min-[1200px]:block' loading="lazy" />
           <div className='flex items-center min-[1200px]:block min-[1200px]:relative'>
-            <img src='/backgrounds/world-map-right.webp' alt='' className='h-full hidden min-[1200px]:block' />
+            <img src='/backgrounds/world-map-right.webp' alt='' className='h-full hidden min-[1200px]:block' loading="lazy" />
             <div className='min-[1200px]:absolute min-[1200px]:top-0 min-[1200px]:left-0 py-12 min-[1200px]:py-16 min-[1200px]:pb-0 rounded-xl shadow-[0_8px_20px_rgba(0,0,0,0.25)] min-[1200px]:rounded-none min-[1200px]:shadow-none min-[1200px]:pt-30 pl-6 min-[1200px]:pl-12 pr-6 min-[1200px]:pr-64 text-xl bg-[#EAD6BE] border-[#DCA87E] border-4 min-[1200px]:border-0 min-[1200px]:bg-transparent flex flex-col gap-6 font-solway'>
               <h1>Dear hacker,</h1>
               <p>
@@ -449,6 +451,7 @@ function App({ events }: { events: EventLocation[] }) {
             src="/decorative/clouds-1.webp"
             alt=""
             className="w-full h-full object-contain select-none"
+            loading="lazy"
           />
         </div>
 
@@ -457,6 +460,7 @@ function App({ events }: { events: EventLocation[] }) {
             src="/decorative/moon-composite.webp" 
             alt="" 
             className="w-full h-full object-contain transform rotate-[346deg] select-none"
+            loading="lazy"
           />
         </div>
 
@@ -465,6 +469,7 @@ function App({ events }: { events: EventLocation[] }) {
             src="/decorative/puzzle-composite.webp"
             alt=""
             className="w-full h-full object-cover select-none"
+            loading="lazy"
           />
         </div>
 
@@ -575,6 +580,7 @@ function App({ events }: { events: EventLocation[] }) {
             src="/decorative/puzzle-cloud-bottom.webp"
             alt=""
             className="w-full h-full object-cover select-none"
+            loading="lazy"
           />
         </div>
       </section>
@@ -585,6 +591,7 @@ function App({ events }: { events: EventLocation[] }) {
             src="/compressed/decorative/speech-bubble-bg.webp" 
             alt=""
             className="w-full h-full select-none pointer-events-none"
+            loading="lazy"
           />
         </div>
 
@@ -602,9 +609,9 @@ function App({ events }: { events: EventLocation[] }) {
           <div className="flex flex-col md:flex-row gap-32 md:gap-10 justify-center items-center md:items-start">
             <div className="relative w-full md:w-auto">
               <div className="absolute inset-0 md:w-[608px] pointer-events-none flex flex-col min-h-[105%]">
-                <img src="/ui/woodboard-1-top.svg" alt="" className="w-full flex-shrink-0 select-none" />
+                <img src="/ui/woodboard-1-top.svg" alt="" className="w-full flex-shrink-0 select-none" loading="lazy" />
                 <div className="bg-[#AD684F] flex-1 w-full py-4"></div>
-                <img src="/ui/woodboard-1-bottom.svg" alt="" className="w-full flex-shrink-0 select-none" />
+                <img src="/ui/woodboard-1-bottom.svg" alt="" className="w-full flex-shrink-0 select-none" loading="lazy" />
               </div>
               
               <div className="relative z-10 flex flex-col gap-10 items-center md:px-16 pt-8 w-[100%] md:w-[608px]">
@@ -638,9 +645,9 @@ function App({ events }: { events: EventLocation[] }) {
 
             <div className="relative w-full md:w-auto">
               <div className="absolute inset-0 md:w-[608px] pointer-events-none flex flex-col min-h-[105%]">
-                <img src="/ui/woodboard-2-top.svg" alt="" className="w-full flex-shrink-0 select-none" />
+                <img src="/ui/woodboard-2-top.svg" alt="" className="w-full flex-shrink-0 select-none" loading="lazy" />
                 <div className="bg-[#AD684F] flex-1 w-full"></div>
-                <img src="/ui/woodboard-2-bottom.svg" alt="" className="w-full flex-shrink-0 select-none" />
+                <img src="/ui/woodboard-2-bottom.svg" alt="" className="w-full flex-shrink-0 select-none" loading="lazy" />
               </div>
               
               <div className="relative z-10 flex flex-col gap-10 items-center px-4 md:px-16 pt-9 w-full md:w-[608px]">
@@ -680,6 +687,7 @@ function App({ events }: { events: EventLocation[] }) {
           src="/backgrounds/footer-background.webp"
           alt=""
           className="w-full h-[50vw] object-bottom object-cover select-none scale-105"
+          loading="lazy"
         />
 
         <div className="relative w-full px-4 pb-32 md:pb-16 md:px-0 bg-[#0f371d] -mt-3 flex flex-col items-center justify-center gap-16 md:gap-6 z-10">

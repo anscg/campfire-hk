@@ -19,6 +19,7 @@ function VideoEmbed({ className }: VideoEmbedProps) {
           src="/compressed/ui/arrow.webp" 
           alt="" 
           className="w-[45px] md:w-[55px] h-[33px] md:h-[41px] translate-y-6 rotate-[6.2deg] z-50 select-none"
+          loading="lazy"
         />
       </div>
 

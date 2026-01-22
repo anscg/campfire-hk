@@ -67,7 +67,7 @@ export const hongkongConfig = {
         "subtitle": "中學生遊戲開發活動",
         "hostedAt": "地點 @ ",
         "emailPlaceholder": "you@hackclub.com",
-        "ctaPrimary": "報名！",
+        "ctaPrimary": "報名!",
         "ctaSecondary": "flagship event",
         "ctaSecondaryPrefix": "Looking for our ",
         "ctaSecondarySuffix": "?",

@@ -15,6 +15,7 @@ function StoryCard({ imageSrc, imageAlt, titleImageSrc, titleImageAlt, descripti
         src={imageSrc}
         alt={imageAlt}
         className="block w-[280px] h-[220px] max-w-none object-cover mb-2"
+        loading="lazy"
       />
 
       <div className="p-2 flex flex-col items-center min-[1050px]:items-start">
@@ -26,6 +27,7 @@ function StoryCard({ imageSrc, imageAlt, titleImageSrc, titleImageAlt, descripti
             style={{
               filter: "drop-shadow(0px 4px 4px rgba(0,0,0,0.25))"
             }}
+            loading="lazy"
           />
         </a>
 

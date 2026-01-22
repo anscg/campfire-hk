@@ -398,7 +398,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                     onClick={() => openWithEmail(FORM_URL_SIGN_UP)}
                   >
                     <p
-                      className={`text-[#8d3f34] ${language === 'zh' ? 'text-2xl md:text-4xl font-bold' : 'text-3xl md:text-5xl font-normal'} font-dream-planner whitespace-nowrap`}
+                      className={`text-[#8d3f34] ${language === 'zh' ? 'text-2xl md:text-4xl font-bold font-dream-planner-zh' : 'text-3xl md:text-5xl font-normal font-dream-planner'} whitespace-nowrap`}
                     >
                       {loc.hero.ctaPrimary}
                     </p>

@@ -14,6 +14,7 @@ function Step({ stepNumber, imageSrc, imageAlt, isReversed = false, children }: 
             src="/compressed/ui/step-bg.webp" 
             alt="" 
             className="w-auto md:w-min h-full md:object-cover select-none translate-y-2 md:translate-y-0"
+            loading="lazy"
           />
         </div>
         
@@ -34,6 +35,7 @@ function Step({ stepNumber, imageSrc, imageAlt, isReversed = false, children }: 
         src={imageSrc}
         alt={imageAlt}
         className="rounded-lg object-cover w-full scale-120 min-[480px]:scale-100 min-[480px]:w-[420px] min-[800px]:w-[509px] aspect-video shadow-[-8px_16px_0px_0px_rgba(0,0,0,0.25)] relative z-20"
+        loading="lazy"
       />
     </div>
   );

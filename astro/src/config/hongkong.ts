@@ -21,7 +21,8 @@ export const hongkongConfig = {
         "faq": "FAQ"
       },
       "schedule": {
-        "title": "SCHEDULE"
+        "title": "SCHEDULE",
+        "note": ""
       },
       "sponsors": {
         "title": "Our sponsors"
@@ -80,7 +81,8 @@ export const hongkongConfig = {
         "faq": "常見問題"
       },
       "schedule": {
-        "title": "時間表"
+        "title": "時間表",
+        "note": "如有特別需要，可申請提早離開"
       },
       "sponsors": {
         "title": "我們的贊助商"

@@ -574,6 +574,11 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
             >
               {loc.schedule.title}
             </h2>
+            {loc.schedule.note && (
+              <p className="text-white/80 text-lg md:text-xl text-center mb-6 font-solway relative z-10">
+                {loc.schedule.note}
+              </p>
+            )}
 
             <div className="relative z-10 max-w-4xl mx-auto flex flex-col gap-8">
               {content.event.schedule.days.map((day, dayIndex) => (

@@ -183,6 +183,11 @@ export const hongkongConfig = {
           "sponsor": "The Well",
           "logo": "/The Well.jpeg",
           "link": "https://maps.app.goo.gl/q8QXVc9efLeaKw5j8"
+        },
+        {
+          "sponsor": "Chong Lap",
+          "logo": "/chonglap.png",
+          "link": "https://hk.chonglap.com"
         }
       ]
     },

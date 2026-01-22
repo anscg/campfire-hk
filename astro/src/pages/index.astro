@@ -1,10 +1,7 @@
 ---
 import "../styles/global.css";
-import App from "../components/pages/App"
-
-import { loadEventsLoc } from "../lib/events";
-
-const events = await loadEventsLoc();
+import Satellite from "../components/pages/Satellite";
+import { hongkongConfig } from "../config/hongkong";
 ---
 
 <!doctype html>
@@ -13,32 +10,25 @@ const events = await loadEventsLoc();
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hack Club Campfire</title>
+    <title>Campfire Hong Kong - Hack Club</title>
     
     <!-- OpenGraph meta tags -->
-    <meta property="og:title" content="Hack Club Campfire" />
-    <meta property="og:description" content="Join Hack Club's annual game jam! Build amazing games and compete for epic prizes." />
+    <meta property="og:title" content="Campfire Hong Kong - Hack Club" />
+    <meta property="og:description" content="Join Campfire Hong Kong - a high school game jam! Build amazing games and compete for epic prizes." />
     <meta property="og:image" content="/og-banner.png" />
-    <meta property="og:url" content="https://campfire.hackclub.com" />
+    <meta property="og:url" content="https://campfire-hk.hackclub.com" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Hack Club Campfire" />
+    <meta property="og:site_name" content="Campfire Hong Kong" />
     
     <!-- Twitter Card meta tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@hackclub" />
-    <meta name="twitter:title" content="Hack Club Campfire" />
-    <meta name="twitter:description" content="Join Hack Club's annual game jam! Build amazing games and compete for epic prizes." />
+    <meta name="twitter:title" content="Campfire Hong Kong" />
+    <meta name="twitter:description" content="Join Campfire Hong Kong - a high school game jam! Build amazing games and compete for epic prizes." />
     <meta name="twitter:image" content="/og-banner.png" />
-
-    <!-- Privacy-friendly analytics by Plausible -->
-    <script async src="https://plausible.io/js/pa-N_oKgCwiYwq16gm7VPPeD.js"></script>
-    <script>
-      window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-      plausible.init()
-    </script>
 
   </head>
   <body>
-    <App client:only="react" events={events} />
+    <Satellite client:only="react" slug="hong-kong" content={hongkongConfig} />
   </body>
 </html>

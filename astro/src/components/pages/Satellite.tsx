@@ -3,13 +3,13 @@ import FaqButton from '../primitives/FaqButton.js';
 import Step from '../primitives/Step.js';
 import GameCard from '../primitives/GameCard.js';
 import NavbarLink from '../primitives/NavbarLink.tsx';
-import MapEmbed from '../primitives/MapEmbed.tsx';
+import LanguageSelector from '../primitives/LanguageSelector.tsx';
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import type { SatelliteContent } from '../../lib/satellite.ts';
 
 function FormattedText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__|<br\s*\/?>)/g);
   return (
     <>
       {parts.map((part, i) => {
@@ -19,15 +19,17 @@ function FormattedText({ text }: { text: string }) {
         if (part.startsWith('__') && part.endsWith('__')) {
           return <span key={i} className="font-bold">{part.slice(2, -2)}</span>;
         }
+        if (part.match(/^<br\s*\/?>$/i)) {
+          return <br key={i} />;
+        }
         return part;
       })}
     </>
   );
 }
 
-const FORM_URL_ORGANIZER_APPLICATION = "https://forms.hackclub.com/t/8L51MzWyrHus";
-const FORM_URL_RSVP = "https://forms.hackclub.com/t/a3QSt8MuvHus";
-const FORM_URL_SIGN_UP = "https://forms.hackclub.com/campfire-signup";
+const FORM_URL_RSVP = "https://forms.hackclub.com/t/a3QSt8MuvHus?event=rec246l5jVyPUVoL3";
+const FORM_URL_SIGN_UP = "https://forms.hackclub.com/campfire-signup?event=rec246l5jVyPUVoL3";
 
 const CONTENT = {
   "version": 2,
@@ -191,8 +193,16 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
   const [email, setEmail] = useState("");
   const [scrollY, setScrollY] = useState(document.body.scrollTop);
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1280);
-  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [language, setLanguage] = useState<'en' | 'zh'>('en');
   const emailRef = useRef<HTMLInputElement>(null);
+
+  const handleLanguageSelect = (lang: 'en' | 'zh') => {
+    setLanguage(lang);
+  };
+
+  // Get localized content based on selected language
+  const loc = (content.localization as any)[language] || (content.localization as any).en;
+  const faqContent = (content.event.faq as any)[language] || (content.event.faq as any).en;
 
   useEffect(() => {
     document.addEventListener("scroll", () => {
@@ -220,11 +230,13 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
     if (!emailRef?.current?.reportValidity() || !email)
       return;
 
-    window.open(`${url}?email=${encodeURIComponent(email)}`, "_blank");
+    const separator = url.includes('?') ? '&' : '?';
+    window.open(`${url}${separator}email=${encodeURIComponent(email)}`, "_blank");
   }
 
   return (
     <div className="w-full min-h-screen flex flex-col overflow-x-hidden">
+      <LanguageSelector onSelectLanguage={handleLanguageSelect} />
       <div className="absolute -top-16 -left-8 w-1/3 z-20 pointer-events-none hidden min-[860px]:block">
         <img
           src="/compressed/backgrounds/corner-cloud.webp"
@@ -243,8 +255,8 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
             {/* <NavbarLink onClick={() => scrollToSection('games-made')}>{content.nav.gamesMade}</NavbarLink> */}
             {/* <NavbarLink onClick={() => scrollToSection('faq')}>{content.nav.faq}</NavbarLink> */}
             {
-              Object.keys(content.localization.nav).map(key => (
-                <NavbarLink key={key} onClick={() => scrollToSection(key)}>{content.localization.nav[key]}</NavbarLink>
+              Object.keys(loc.nav).map(key => (
+                <NavbarLink key={key} onClick={() => scrollToSection(key)}>{loc.nav[key]}</NavbarLink>
               ))
             }
           </nav>
@@ -317,7 +329,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                       textShadow: "5px 8px 0px rgba(0,0,0,0.25)"
                     }}
                   >
-                    {content.localization.hero.campfire}
+                    {loc.hero.campfire}
                   </h1>
                   <h3
                     className="text-[#fcf5ed] text-[40px] md:text-[50px] xl:text-[60px] font-normal leading-none mb-4 font-dream-planner text-right"
@@ -336,7 +348,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                       textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
                     }}
                   >
-                    {content.localization.hero.subtitle}
+                    {loc.hero.subtitle}
                   </p>
                   <p
                     className="text-white text-4xl md:text-3xl xl:text-4xl font-bold mb-2 font-ember-and-fire"
@@ -344,7 +356,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                       textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
                     }}
                   >
-                    {content.localization.hero.hostedAt}
+                    {loc.hero.hostedAt}
                     <a href={content.event.venue.link} target="_blank" rel="noopener noreferrer" className="underline">
                       {content.event.venue.name}
                     </a>
@@ -376,7 +388,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                       onChange={e => setEmail(e.target.value)}
                       type="email"
                       className="text-[#854d16] text-2xl md:text-4xl font-bold truncate bg-transparent border-none outline-none flex-1 cursor-text font-ember-and-fire"
-                      placeholder={content.localization.hero.emailPlaceholder}
+                      placeholder={loc.hero.emailPlaceholder}
                     />
                   </div>
 
@@ -385,10 +397,10 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                     type="button"
                     onClick={() => openWithEmail(FORM_URL_SIGN_UP)}
                   >
-                    <p 
-                      className="text-[#8d3f34] text-3xl md:text-5xl font-normal font-dream-planner whitespace-nowrap"
+                    <p
+                      className={`text-[#8d3f34] ${language === 'zh' ? 'text-2xl md:text-4xl font-bold' : 'text-3xl md:text-5xl font-normal'} font-dream-planner whitespace-nowrap`}
                     >
-                      {content.localization.hero.ctaPrimary}
+                      {loc.hero.ctaPrimary}
                     </p>
                   </button>
                 </div>
@@ -396,17 +408,15 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                 <div className='font-ember-and-fire text-white text-4xl pl-2 -translate-y-1 md:rotate-[-1.2deg]' style={{
                   textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
                 }}>
-                  {content.localization.hero.ctaSecondaryPrefix}<span
+                  {loc.hero.ctaSecondaryPrefix}<span
                     className='underline inline-block cursor-pointer transition-transform hover:scale-105 active:scale-95'
                     onClick={() => openWithEmail(FORM_URL_RSVP)}
                   >
-                    {content.localization.hero.ctaSecondary}
-                  </span>{content.localization.hero.ctaSecondarySuffix}
+                    {loc.hero.ctaSecondary}
+                  </span>{loc.hero.ctaSecondarySuffix}
                 </div>
               </div>
             </div>
-
-            <MapEmbed className="hidden xl:block self-end mb-8" onOpenMap={() => setIsMapOpen(true)} label={content.localization.hero.mapLabel}/>
           </div>
         </section>
 
@@ -423,9 +433,6 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
       </div>
 
       <section className="relative pb-96 bg-[url(/backgrounds/underwater-gradient.webp)] bg-cover bg-top">
-        <div className="xl:hidden pt-16 pb-8 relative z-50">
-          <MapEmbed className="px-6 relative z-50 max-w-sm mx-auto" onOpenMap={() => setIsMapOpen(true)} label={content.localization.hero.mapLabel}/>
-        </div>
         <div className="pt-[8vw] xl:pt-[13vw]"></div>
         <div className="absolute top-0 left-0 w-screen h-[200px] bg-gradient-to-b from-[#004b2a] to-transparent pointer-events-none"></div>
         <div className="absolute top-0 xl:top-[30px] left-0 w-full scale-125 pointer-events-none z-50">
@@ -473,7 +480,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
             imageSrc="/compressed/ui/step-signup.jpeg"
             imageAlt="Step 1"
           >
-            <FormattedText text={content.localization.steps.step1} />
+            <FormattedText text={loc.steps.step1} />
           </Step>
 
           <Step
@@ -482,7 +489,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
             imageAlt="Step 2"
             isReversed={true}
           >
-            <FormattedText text={content.localization.steps.step2} />
+            <FormattedText text={loc.steps.step2} />
           </Step>
 
           <Step
@@ -490,7 +497,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
             imageSrc="/compressed/ui/step-workshops.webp"
             imageAlt="Step 3"
           >
-            <FormattedText text={content.localization.steps.step3} />
+            <FormattedText text={loc.steps.step3} />
           </Step>
 
           <Step
@@ -499,7 +506,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
             imageAlt="Step 4"
             isReversed={true}
           >
-            <FormattedText text={content.localization.steps.step4} />
+            <FormattedText text={loc.steps.step4} />
           </Step>
         </div>
       </section>
@@ -514,18 +521,18 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
           <div className='flex items-center min-[1200px]:block min-[1200px]:relative'>
             <img src='/backgrounds/world-map-right.webp' alt='' className='h-full hidden min-[1200px]:block' />
             <div className='min-[1200px]:absolute min-[1200px]:top-0 min-[1200px]:left-0 py-12 min-[1200px]:py-16 min-[1200px]:pb-0 rounded-xl shadow-[0_8px_20px_rgba(0,0,0,0.25)] min-[1200px]:rounded-none min-[1200px]:shadow-none min-[1200px]:pt-30 pl-6 min-[1200px]:pl-12 pr-6 min-[1200px]:pr-64 text-xl bg-[#EAD6BE] border-[#DCA87E] border-4 min-[1200px]:border-0 min-[1200px]:bg-transparent flex flex-col gap-6 font-solway'>
-              <h1 className="text-2xl md:text-3xl font-bold">{content.localization.letter.greeting}</h1>
-              <p>{content.localization.letter.paragraph1}</p>
+              <h1 className="text-2xl md:text-3xl font-bold">{loc.letter.greeting}</h1>
+              <p>{loc.letter.paragraph1}</p>
 
-              <p className="text-xl"><b>{content.localization.letter.paragraph2}</b></p>
+              <p className="text-xl"><b>{loc.letter.paragraph2}</b></p>
 
-              <p>{content.localization.letter.paragraph3}</p>
+              <p>{loc.letter.paragraph3}</p>
 
-              <p>{content.localization.letter.paragraph4}</p>
+              <p>{loc.letter.paragraph4}</p>
 
               <p>
-                {content.localization.letter.closing} <br />
-                {content.localization.letter.signature}
+                {loc.letter.closing} <br />
+                {loc.letter.signature}
               </p>
             </div>
           </div>
@@ -565,7 +572,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
             <h2
               className="text-[#FFD999] text-6xl md:text-7xl font-bold text-center mb-4 font-ember-and-fire relative z-10"
             >
-              {content.localization.schedule.title}
+              {loc.schedule.title}
             </h2>
 
             <div className="relative z-10 max-w-4xl mx-auto flex flex-col gap-8">
@@ -609,25 +616,57 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
               textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
             }}
           >
-            {content.localization.sponsors.title}
+            {loc.sponsors.title}
           </h2>
 
           <div className="flex flex-wrap gap-8 justify-center">
             {
               content.event.sponsors.cards.map((sponsor, index) => (
-                <>
-                  <a key={index} href={sponsor.link} target="_blank" className='flex flex-col justify-center items-center bg-white/10 rounded-xl p-4 hover:bg-white/15 transition-all'>
-                    <img
-                      src={sponsor.logo}
-                      alt={sponsor.sponsor}
-                      className="w-40 m-4 object-cover select-none"
-                    />
-                    <p className="text-white text-lg md:text-xl font-solway">{sponsor.sponsor}</p>
-                  </a>
-                </>
+                  <a key={index} href={sponsor.link} target="_blank" className='flex flex-col justify-center items-center bg-white/10 p-4 hover:bg-white/15 transition-all'>
+                    <div className="w-40 m-4 flex items-center justify-center" style={{ height: '130px' }}>
+                      <img
+                        src={sponsor.logo}
+                        alt={sponsor.sponsor}
+                        className="max-w-full max-h-full object-contain rounded-lg select-none"
+                      />
+                    </div>
+                  <p className="text-white text-lg md:text-xl font-solway">{sponsor.sponsor}</p>
+                </a>
               ))
             }
           </div>
+
+          {
+            content.event.partners && content.event.partners.cards.length > 0 ? (
+              <div className="mt-16 flex flex-col gap-8 items-center">
+                <h2
+                  className="text-[#f1ebff] text-6xl font-bold text-center mb-8 font-ember-and-fire"
+                  style={{
+                    textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
+                  }}
+                >
+                  {loc.partners?.title || "Our partners"}
+                </h2>
+
+                <div className="flex flex-wrap gap-8 justify-center">
+                  {
+                    content.event.partners.cards.map((partner, index) => (
+                    <a key={index} href={partner.link} target="_blank" className='flex flex-col justify-center items-center bg-white/10 p-4 hover:bg-white/15 transition-all'>
+                      <div className="w-40 m-4 flex items-center justify-center" style={{ height: '130px' }}>
+                        <img
+                          src={partner.logo}
+                          alt={partner.sponsor}
+                          className="max-w-full max-h-full object-contain rounded-lg select-none"
+                        />
+                      </div>
+                        <p className="text-white text-lg md:text-xl font-solway">{partner.sponsor}</p>
+                      </a>
+                    ))
+                  }
+                </div>
+              </div>
+            ) : null
+          }
 
           {
             content.event.signatures ?
@@ -640,12 +679,12 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                       textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
                     }}
                   >
-                    {content.localization.signatures.title}
+                    {loc.signatures.title}
                   </h2>
 
                   <img
                     src={content.event.signatures.img}
-                    alt={content.localization.signatures.title}
+                    alt={loc.signatures.title}
                     className="w-[60%] object-cover select-none"
                   />
                 </div>)
@@ -697,41 +736,15 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                     textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
                   }}
                 >
-                  {content.event.faq.participant.title}
+                  {faqContent.participant.title}
                 </p>
 
-                {content.event.faq.participant.questions.map((q, i) => (
+                {faqContent.participant.questions.map((q, i) => (
                   <FaqQuestion key={i} question={q.question}>
                     {q.answer}
                   </FaqQuestion>
                 ))}
-                <FaqButton content={content.event.faq.participant.buttonText} />
-              </div>
-            </div>
-
-            <div className="relative w-full md:w-auto">
-              <div className="absolute inset-0 md:w-[608px] pointer-events-none flex flex-col min-h-[105%]">
-                <img src="/ui/woodboard-2-top.svg" alt="" className="w-full flex-shrink-0 select-none" />
-                <div className="bg-[#AD684F] flex-1 w-full"></div>
-                <img src="/ui/woodboard-2-bottom.svg" alt="" className="w-full flex-shrink-0 select-none" />
-              </div>
-
-              <div className="relative z-10 flex flex-col gap-10 items-center px-4 md:px-16 pt-9 w-full md:w-[608px]">
-                <p
-                  className="text-[#d7cfeb] text-6xl font-bold text-center mb-4 font-ember-and-fire"
-                  style={{
-                    textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
-                  }}
-                >
-                  {content.event.faq.organizer.title}
-                </p>
-
-                {content.event.faq.organizer.questions.map((q, i) => (
-                  <FaqQuestion key={i} question={q.question}>
-                    {q.answer}
-                  </FaqQuestion>
-                ))}
-                <FaqButton href={FORM_URL_ORGANIZER_APPLICATION} content={content.event.faq.organizer.buttonText} />
+                <FaqButton content={faqContent.participant.buttonText} />
               </div>
             </div>
           </div>
@@ -752,54 +765,31 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
               textShadow: "0px 4px 4px rgba(0,0,0,0.25)"
             }}
           >
-            {content.localization.footer.tagline}
+            {loc.footer.tagline}
           </p>
 
           <div className="mt-8 flex flex-col md:flex-row gap-16 max-w-6xl mx-auto px-4">
             <div className="flex flex-col items-center md:items-end gap-4 text-white text-4xl md:text-3xl font-ember-and-fire font-bold z-20">
-              {content.localization.footer.links.map((link, index) => (
+              {loc.footer.links.map((link, index) => (
                 <a key={index} href={link.href} target="_blank" className="hover:underline">{link.text}</a>
               ))}
 
               <p className="text-white text-sm md:text-md text-right max-w-96 font-ember-and-fire">
-                {content.localization.footer.copyright}
+                {loc.footer.copyright}
               </p>
             </div>
 
             <div className="flex-1 text-left">
               <p className="text-white text-lg md:text-xl font-ember-and-fire leading-relaxed mb-4">
-                {content.localization.footer.description}<a href="https://summer.hackclub.com/" target="_blank" className="underline hover:text-gray-300">Summer of Making</a>, hosted the <a href="https://github.com/hackclub/the-hacker-zephyr" target="_blank" className="underline hover:text-gray-300">world's longest hackathon on land</a>, and ran <a href="https://www.youtube.com/watch?v=QvCoISXfcE8" target="_blank" className="underline hover:text-gray-300">Canada's largest high school hackathon</a>.
+                {loc.footer.description}<a href="https://summer.hackclub.com/" target="_blank" className="underline hover:text-gray-300">Summer of Making</a>, hosted the <a href="https://github.com/hackclub/the-hacker-zephyr" target="_blank" className="underline hover:text-gray-300">world's longest hackathon on land</a>, and ran <a href="https://www.youtube.com/watch?v=QvCoISXfcE8" target="_blank" className="underline hover:text-gray-300">Canada's largest high school hackathon</a>.
               </p>
               <p className="text-white text-lg md:text-xl font-ember-and-fire font-bold">
-                {content.localization.footer.closing}
+                {loc.footer.closing}
               </p>
             </div>
           </div>
         </div>
       </footer>
-
-      {isMapOpen && (
-        <div 
-          className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4"
-          onClick={() => setIsMapOpen(false)}
-        >
-          <div 
-            className="relative w-[90vw] h-[80vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setIsMapOpen(false)}
-              className="absolute -top-10 right-0 text-white text-3xl font-bold hover:opacity-70 cursor-pointer"
-            >
-              ✕
-            </button>
-            <iframe 
-              src="/map" 
-              className="w-full h-full rounded-2xl"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

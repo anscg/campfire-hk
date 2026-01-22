@@ -1,41 +1,23 @@
 {
-  "name": "astro",
+  "name": "campfire-hong-kong",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro",
-    "sync:once": "tsx -e \"import('./src/lib/airtable.js').then(m => m.airtableSyncWorker.syncEvents())\""
+    "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/node": "^9.5.1",
     "@astrojs/react": "^4.4.2",
-    "@astrojs/svelte": "^7.2.3",
-    "@prisma/adapter-pg": "7.1.0",
-    "@prisma/client": "7.1.0",
-    "@prisma/config": "7.1.0",
     "@tailwindcss/vite": "^4.1.18",
-    "@types/leaflet": "^1.9.21",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "astro": "^5.16.5",
-    "better-auth": "^1.4.6",
-    "dotenv": "^17.2.3",
-    "leaflet": "^1.9.4",
-    "lockfile": "^1.0.4",
+    "clsx": "^2.1.1",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
-    "react-leaflet": "^5.0.0",
-    "svelte": "^5.45.10",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
-  },
-  "devDependencies": {
-    "@types/pg": "^8.16.0",
-    "airtable": "^0.12.2",
-    "prisma": "7.1.0",
-    "tsx": "^4.21.0"
   }
 }

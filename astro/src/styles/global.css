@@ -3,17 +3,29 @@
 
 @font-face {
   font-family: 'DREAM PLANNER';
-  src: url('/fonts/dreamplanner.woff2') format('woff2'),
-       url('/fonts/dreamplanner.woff') format('woff');
+  src: url('/fonts/dreamplanner.woff') format('woff');
   font-weight: normal;
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Ember & Fire';
-  src: url('/fonts/ember-and-fire.woff2') format('woff2'),
-       url('/fonts/ember-and-fire.woff') format('woff')
-       url('/fonts/ember-and-fire.ttf') format('ttf');
+  src: url('/fonts/ember-and-fire.woff') format('woff'),
+       url('/fonts/ember-and-fire.ttf') format('truetype');
+  font-weight: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GenWanMin';
+  src: url('/fonts/GenWanMin.otf') format('opentype');
+  font-weight: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GenSenRounded';
+  src: url('/fonts/GenSenRounded.otf') format('opentype');
   font-weight: normal;
   font-display: swap;
 }
@@ -42,15 +54,18 @@ html, body, #root {
   --font-amatic: 'Amatic SC', sans-serif;
   --font-ember-and-fire: 'Ember & Fire', sans-serif;
   --font-national-park: 'National Park', sans-serif;
-  --font-solway: 'Solway', serif;
-  --font-dream-planner: 'DREAM PLANNER', Impact, 'Arial Black', sans-serif;
-  --font-pt-sans: 'PT Sans', sans-serif;
-  --font-source-serif-pro: 'Source Serif Pro', serif;
+  --font-solway: 'Solway', 'GenWanMin', serif;
+  --font-ember-and-fire: 'Ember & Fire', 'GenSenRounded', sans-serif;
+  --font-dream-planner: 'DREAM PLANNER', 'GenSenRounded', Impact, 'Arial Black', sans-serif;
+  --font-pt-sans: 'PT Sans', 'GenSenRounded', sans-serif;
+  --font-source-serif-pro: 'Source Serif Pro', 'GenWanMin', serif;
   
   --animate-fish-swim-1: fish-swim 64s linear infinite;
   --animate-fish-swim-2: fish-swim 70s linear infinite;
   --animate-cloud-float-right: float-left-right 20s ease-in-out alternate infinite;
   --animate-float-up-down: float-up-down 2.5s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-scale-in: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   @keyframes fish-swim {
     0%        { transform: translateX(0px) scaleX(1); }
@@ -67,5 +82,21 @@ html, body, #root {
   @keyframes float-up-down {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-20px); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scale-in {
+    from { 
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to { 
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 }

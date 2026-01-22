@@ -4,9 +4,10 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/subset-fonts.js && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "subset-fonts": "node scripts/subset-fonts.js"
   },
   "dependencies": {
     "@astrojs/react": "^4.4.2",
@@ -19,5 +20,9 @@
     "react-dom": "^19.2.1",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "fontmin": "^1.1.1",
+    "glob": "^13.0.0"
   }
 }

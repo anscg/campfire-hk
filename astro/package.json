@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "fontmin": "^1.1.1",
-    "glob": "^13.0.0"
+    "glob": "^13.0.0",
+    "wawoff2": "^2.0.1"
   }
 }

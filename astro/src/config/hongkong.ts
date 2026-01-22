@@ -86,7 +86,7 @@ export const hongkongConfig = {
         "title": "我們的贊助商"
       },
       "partners": {
-        "title": "我們的夥伴"
+        "title": "協辦夥伴"
       },
       "signatures": {
         "title": "簽名"

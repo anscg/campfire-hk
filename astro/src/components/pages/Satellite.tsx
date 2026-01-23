@@ -624,9 +624,61 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
             {loc.sponsors.title}
           </h2>
 
-          <div className="flex flex-wrap gap-8 justify-center">
-            {
-              content.event.sponsors.cards.map((sponsor, index) => (
+          {/* Gold Tier Sponsors */}
+          {content.event.sponsors.cards.filter(s => s.tier === 'Gold').length > 0 && (
+            <div className="w-full flex flex-col gap-6 items-center">
+              <h3 className="text-yellow-300 text-3xl font-bold text-center font-solway">
+                Gold Tier
+              </h3>
+              <div className="flex flex-wrap gap-8 justify-center">
+                {
+                  content.event.sponsors.cards.filter(s => s.tier === 'Gold').map((sponsor, index) => (
+                    <a key={index} href={sponsor.link} target="_blank" className='flex flex-col justify-center items-center bg-white/10 p-4 hover:bg-white/15 transition-all'>
+                      <div className="w-40 m-4 flex items-center justify-center" style={{ height: '130px' }}>
+                        <img
+                          src={sponsor.logo}
+                          alt={sponsor.sponsor}
+                          className="max-w-full max-h-full object-contain rounded-lg select-none"
+                        />
+                      </div>
+                      <p className="text-white text-lg md:text-xl font-solway">{sponsor.sponsor}</p>
+                    </a>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+
+          {/* Silver Tier Sponsors */}
+          {content.event.sponsors.cards.filter(s => s.tier === 'Silver').length > 0 && (
+            <div className="w-full flex flex-col gap-6 items-center mt-8">
+              <h3 className="text-gray-300 text-3xl font-bold text-center font-solway">
+                Silver Tier
+              </h3>
+              <div className="flex flex-wrap gap-8 justify-center">
+                {
+                  content.event.sponsors.cards.filter(s => s.tier === 'Silver').map((sponsor, index) => (
+                    <a key={index} href={sponsor.link} target="_blank" className='flex flex-col justify-center items-center bg-white/10 p-4 hover:bg-white/15 transition-all'>
+                      <div className="w-40 m-4 flex items-center justify-center" style={{ height: '130px' }}>
+                        <img
+                          src={sponsor.logo}
+                          alt={sponsor.sponsor}
+                          className="max-w-full max-h-full object-contain rounded-lg select-none"
+                        />
+                      </div>
+                      <p className="text-white text-lg md:text-xl font-solway">{sponsor.sponsor}</p>
+                    </a>
+                  ))
+                }
+              </div>
+            </div>
+          )}
+
+          {/* Sponsors without tier (fallback) */}
+          {content.event.sponsors.cards.filter(s => !s.tier).length > 0 && (
+            <div className="flex flex-wrap gap-8 justify-center mt-8">
+              {
+                content.event.sponsors.cards.filter(s => !s.tier).map((sponsor, index) => (
                   <a key={index} href={sponsor.link} target="_blank" className='flex flex-col justify-center items-center bg-white/10 p-4 hover:bg-white/15 transition-all'>
                     <div className="w-40 m-4 flex items-center justify-center" style={{ height: '130px' }}>
                       <img
@@ -635,11 +687,12 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                         className="max-w-full max-h-full object-contain rounded-lg select-none"
                       />
                     </div>
-                  <p className="text-white text-lg md:text-xl font-solway">{sponsor.sponsor}</p>
-                </a>
-              ))
-            }
-          </div>
+                    <p className="text-white text-lg md:text-xl font-solway">{sponsor.sponsor}</p>
+                  </a>
+                ))
+              }
+            </div>
+          )}
 
           {
             content.event.partners && content.event.partners.cards.length > 0 ? (

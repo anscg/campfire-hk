@@ -162,32 +162,38 @@ export const hongkongConfig = {
         {
           "sponsor": "HKGD",
           "logo": "/HKGD.png",
-          "link": "https://hkgd.org"
+          "link": "https://hkgd.org",
+          "tier": "Silver"
         },
         {
           "sponsor": "BSD Education",
           "logo": "/BSD Education Logo - In Shape.png",
-          "link": "https://bsd.education"
+          "link": "https://bsd.education",
+          "tier": "Gold"
         },
         {
           "sponsor": "Kepler Interactive",
           "logo": "/Kepler interactive.png",
-          "link": "https://kepler-interactive.com/"
+          "link": "https://kepler-interactive.com/",
+          "tier": "Gold"
         },
         {
           "sponsor": "LAMPAS",
           "logo": "/LAMPUS.jpeg",
-          "link": "https://lampas.ltd"
+          "link": "https://lampas.ltd",
+          "tier": "Gold"
         },
         {
           "sponsor": "The Well",
           "logo": "/The Well.jpeg",
-          "link": "https://maps.app.goo.gl/q8QXVc9efLeaKw5j8"
+          "link": "https://maps.app.goo.gl/q8QXVc9efLeaKw5j8",
+          "tier": "Gold"
         },
         {
           "sponsor": "Chong Lap",
           "logo": "/chonglap.png",
-          "link": "https://hk.chonglap.com"
+          "link": "https://hk.chonglap.com",
+          "tier": "Silver"
         }
       ]
     },

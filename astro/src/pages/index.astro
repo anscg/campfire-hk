@@ -2,6 +2,7 @@
 import "../styles/global.css";
 import Satellite from "../components/pages/Satellite";
 import { hongkongConfig } from "../config/hongkong";
+import PostHog from "../components/posthog.astro";
 ---
 
 <!doctype html>
@@ -33,6 +34,8 @@ import { hongkongConfig } from "../config/hongkong";
     <meta name="twitter:description" content="Join Campfire Hong Kong - a high school game jam! Build amazing games and compete for epic prizes." />
     <meta name="twitter:image" content="/og-banner.png" />
 
+    <!-- PostHog Analytics -->
+    <PostHog />
   </head>
   <body>
     <Satellite client:only="react" slug="hong-kong" content={hongkongConfig} />

@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
       "source": "/ph/static/:path(.*)",
       "destination": "https://us-assets.i.posthog.com/static/:path"
     },
@@ -8,5 +12,10 @@
       "source": "/ph/:path(.*)",
       "destination": "https://us.i.posthog.com/:path"
     }
-  ]
+  ],
+  "functions": {
+    "api/**/*": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }

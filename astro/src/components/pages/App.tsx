@@ -58,6 +58,7 @@ function App({ events }: { events: EventLocation[] }) {
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -97,9 +98,38 @@ function App({ events }: { events: EventLocation[] }) {
     }
   };
 
-  function openWithEmail(url: string) {
-    if (!emailRef?.current?.reportValidity() || !email)
+  async function logEmail() {
+    try {
+      await fetch('/api/log-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+    } catch (error) {
+      console.error('Failed to log email:', error);
+    }
+  }
+
+  async function openWithEmail(url: string) {
+    if (!emailRef?.current?.reportValidity() || !email || isSubmitting)
       return;
+
+    setIsSubmitting(true);
+    await logEmail();
+    setIsSubmitting(false);
+
+    window.open(`${url}?email=${encodeURIComponent(email)}`, "_blank");
+  }
+
+  async function handleEmailSubmit(url: string) {
+    if (!emailRef?.current?.reportValidity() || !email || isSubmitting)
+      return;
+
+    setIsSubmitting(true);
+    await logEmail();
+    setIsSubmitting(false);
 
     window.open(`${url}?email=${encodeURIComponent(email)}`, "_blank");
   }
@@ -244,28 +274,39 @@ function App({ events }: { events: EventLocation[] }) {
                       "transition-transform hover:scale-105"
                     )}
                   >
-                    <img src="/icons/email.svg" alt="" className="w-6 h-5 flex-shrink-0 select-none" />
-                    <input
-                      required
-                      ref={emailRef}
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      type="email"
-                      className="text-[#854d16] text-2xl md:text-4xl font-bold truncate bg-transparent border-none outline-none flex-1 cursor-text font-ember-and-fire"
-                      placeholder="you@hackclub.com"
-                      defaultValue="you@hackclub.com"
-                    />
+                     <img src="/icons/email.svg" alt="" className="w-6 h-5 flex-shrink-0 select-none" />
+                     <input
+                       required
+                       ref={emailRef}
+                       value={email}
+                       onChange={e => setEmail(e.target.value)}
+                       onKeyDown={(e) => {
+                         if (e.key === 'Enter') {
+                           e.preventDefault();
+                           openWithEmail(FORM_URL_SIGN_UP);
+                         }
+                       }}
+                       type="email"
+                       className="text-[#854d16] text-2xl md:text-4xl font-bold truncate bg-transparent border-none outline-none flex-1 cursor-text font-ember-and-fire"
+                       placeholder="you@hackclub.com"
+                       defaultValue="you@hackclub.com"
+                     />
                   </div>
                   
                   <button 
-                    className="bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 hover:scale-105 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)] cursor-pointer active:scale-95"
+                    className={clsx(
+                      "bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)] cursor-pointer active:scale-95",
+                      !isSubmitting && "hover:scale-105",
+                      isSubmitting && "opacity-70 cursor-not-allowed"
+                    )}
                     type="button"
                     onClick={() => openWithEmail(FORM_URL_SIGN_UP)}
+                    disabled={isSubmitting}
                   >
                     <p 
                       className="text-[#8d3f34] text-3xl md:text-5xl font-normal font-dream-planner whitespace-nowrap"
                     >
-                    SIGN UP!
+                    {isSubmitting ? 'SIGNING UP...' : 'SIGN UP!'}
                     </p>
                   </button>
                 </div>

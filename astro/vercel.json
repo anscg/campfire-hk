@@ -12,10 +12,5 @@
       "source": "/ph/:path(.*)",
       "destination": "https://us.i.posthog.com/:path"
     }
-  ],
-  "functions": {
-    "api/**/*": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  ]
 }

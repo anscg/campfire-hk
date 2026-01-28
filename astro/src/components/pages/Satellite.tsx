@@ -194,6 +194,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
   const [scrollY, setScrollY] = useState(document.body.scrollTop);
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1280);
   const [language, setLanguage] = useState<'en' | 'zh'>('en');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   const handleLanguageSelect = (lang: 'en' | 'zh') => {
@@ -226,12 +227,36 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
     }
   };
 
-  function openWithEmail(url: string) {
-    if (!emailRef?.current?.reportValidity() || !email)
+  async function logEmail() {
+    try {
+      const response = await fetch('/api/log-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      
+      const data = await response.json();
+      console.log('Email logged successfully:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to log email');
+      }
+    } catch (error) {
+      console.error('Failed to log email:', error);
+      throw error;
+    }
+  }
+
+  async function openWithEmail(url: string) {
+    if (!emailRef?.current?.reportValidity() || !email || isSubmitting)
       return;
 
     const separator = url.includes('?') ? '&' : '?';
     window.open(`${url}${separator}email=${encodeURIComponent(email)}`, "_blank");
+
+    logEmail().catch(error => console.error('Error logging email:', error));
   }
 
   return (
@@ -386,6 +411,12 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                       ref={emailRef}
                       value={email}
                       onChange={e => setEmail(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          openWithEmail(FORM_URL_SIGN_UP);
+                        }
+                      }}
                       type="email"
                       className="text-[#854d16] text-2xl md:text-4xl font-bold truncate bg-transparent border-none outline-none flex-1 cursor-text font-ember-and-fire"
                       placeholder={loc.hero.emailPlaceholder}
@@ -393,7 +424,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                   </div>
 
                   <button 
-                    className="bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 hover:scale-105 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)] cursor-pointer active:scale-95"
+                    className="bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 hover:scale-105 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px:20px:0,0,0,0.25)] cursor-pointer active:scale-95"
                     type="button"
                     onClick={() => openWithEmail(FORM_URL_SIGN_UP)}
                   >

@@ -100,15 +100,23 @@ function App({ events }: { events: EventLocation[] }) {
 
   async function logEmail() {
     try {
-      await fetch('/api/log-email', {
+      const response = await fetch('/api/log-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
       });
+      
+      const data = await response.json();
+      console.log('Email logged successfully:', data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to log email');
+      }
     } catch (error) {
       console.error('Failed to log email:', error);
+      throw error;
     }
   }
 
@@ -117,8 +125,13 @@ function App({ events }: { events: EventLocation[] }) {
       return;
 
     setIsSubmitting(true);
-    await logEmail();
-    setIsSubmitting(false);
+    try {
+      await logEmail();
+    } catch (error) {
+      console.error('Error logging email:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
 
     window.open(`${url}?email=${encodeURIComponent(email)}`, "_blank");
   }

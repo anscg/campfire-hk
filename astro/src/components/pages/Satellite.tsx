@@ -253,18 +253,10 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
     if (!emailRef?.current?.reportValidity() || !email || isSubmitting)
       return;
 
-    setIsSubmitting(true);
-    
-    try {
-      await logEmail();
-    } catch (error) {
-      console.error('Error logging email:', error);
-    }
-
-    setIsSubmitting(false);
-
     const separator = url.includes('?') ? '&' : '?';
     window.open(`${url}${separator}email=${encodeURIComponent(email)}`, "_blank");
+
+    logEmail().catch(error => console.error('Error logging email:', error));
   }
 
   return (
@@ -431,20 +423,15 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                     />
                   </div>
 
-                  <button 
-                    className={clsx(
-                      "bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px:20px:0,0,0,0.25)] cursor-pointer active:scale-95",
-                      !isSubmitting && "hover:scale-105",
-                      isSubmitting && "opacity-70 cursor-not-allowed"
-                    )}
+                  <button
+                    className="bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 md:px-14 py-4 hover:scale-105 transition-transform w-full md:w-auto transform md:rotate-[1.5deg] shadow-[0_8px:20px:0,0,0,0.25)] cursor-pointer active:scale-95"
                     type="button"
                     onClick={() => openWithEmail(FORM_URL_SIGN_UP)}
-                    disabled={isSubmitting}
                   >
                     <p
                       className={`text-[#8d3f34] ${language === 'zh' ? 'text-2xl md:text-4xl font-bold font-dream-planner-zh' : 'text-3xl md:text-5xl font-normal font-dream-planner'} whitespace-nowrap`}
                     >
-                      {isSubmitting ? 'SIGNING UP...' : loc.hero.ctaPrimary}
+                      {loc.hero.ctaPrimary}
                     </p>
                   </button>
                 </div>

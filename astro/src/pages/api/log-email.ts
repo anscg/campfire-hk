@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    const webhookUrl = 'https://hooks.slack.com/services/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';
+    const webhookUrl = import.meta.env.SLACK_WEBHOOK_URL;
 
     const response = await fetch(webhookUrl, {
       method: 'POST',

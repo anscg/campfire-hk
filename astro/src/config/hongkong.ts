@@ -234,7 +234,7 @@ export const hongkongConfig = {
                 "answer": "Just bring yourself, a laptop, charger, and any personal items you need. We'll provide food, drinks, and everything else!"
               }
             ],
-            "buttonText": "Check out the parent guide",
+s            "buttonText": "Check out the parent guide",
             "buttonHref": "https://docs.google.com/document/d/1Iaj3re3NULerjCcAIXC4G-Ishd1TmP9Ojw2xH8l58ik/edit?tab=t.0#heading=h.12mg8uzylly"
           }
         },

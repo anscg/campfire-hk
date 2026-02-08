@@ -189,12 +189,55 @@ const CONTENT = {
   }
 }
 
+function SignupPopup({ url, email, onClose }: { url: string; email: string; onClose: () => void }) {
+  const separator = url.includes('?') ? '&' : '?';
+  
+  const handleOpen = () => {
+    window.open(`${url}${separator}email=${encodeURIComponent(email)}`, "_blank");
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 animate-fade-in">
+      <div 
+        className="relative bg-[#f9e2ca] border-[6px] border-[#d5a16c] rounded-[30px] p-8 md:p-12 shadow-[0_12px_40px_rgba(0,0,0,0.4)] max-w-md w-full transform animate-scale-in"
+      >
+        <div className="relative z-10">
+          <h2 
+            className="text-[#854d16] text-5xl md:text-6xl font-bold text-center mb-8 font-dream-planner"
+            style={{
+              textShadow: "3px 3px 0px rgba(133,77,22,0.2)"
+            }}
+          >
+            POPUP BLOCKED?
+          </h2>
+
+          <p className="text-[#854d16] text-xl md:text-2xl font-bold text-center mb-8 font-ember-and-fire">
+            Click to open signup form
+          </p>
+
+          <button
+            onClick={handleOpen}
+            className="bg-[#fca147] border-[5px] border-[rgba(0,0,0,0.2)] rounded-[20px] px-8 py-5 hover:scale-105 transition-transform transform hover:rotate-[-1deg] shadow-[0_8px_20px_rgba(0,0,0,0.25)] cursor-pointer active:scale-95 w-full"
+          >
+            <p className="text-[#8d3f34] text-3xl md:text-4xl font-normal font-dream-planner">
+              OPEN SIGNUP
+            </p>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App({slug, content}: {slug: string | undefined, content: SatelliteContent}) {
   const [email, setEmail] = useState("");
   const [scrollY, setScrollY] = useState(document.body.scrollTop);
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1280);
   const [language, setLanguage] = useState<'en' | 'zh'>('en');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSignupPopup, setShowSignupPopup] = useState(false);
+  const [signupAttemptUrl, setSignupAttemptUrl] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
 
   const handleLanguageSelect = (lang: 'en' | 'zh') => {
@@ -253,8 +296,25 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
     if (!emailRef?.current?.reportValidity() || !email || isSubmitting)
       return;
 
+    const cookieName = 'campfire_signup_attempts';
+    const attempts = parseInt(document.cookie.replace(new RegExp(`(?:(?:^|.*;\\s*)${cookieName}\\s*\\=\\s*([^;]*).*$)|^.*$`), "$1") || "0");
+    
+    if (attempts >= 1) {
+      setSignupAttemptUrl(url);
+      setShowSignupPopup(true);
+      document.cookie = `${cookieName}=${attempts + 1}; max-age=31536000; path=/`;
+      return;
+    }
+
     const separator = url.includes('?') ? '&' : '?';
-    window.open(`${url}${separator}email=${encodeURIComponent(email)}`, "_blank");
+    const popup = window.open(`${url}${separator}email=${encodeURIComponent(email)}`, "_blank");
+
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      setSignupAttemptUrl(url);
+      setShowSignupPopup(true);
+    }
+
+    document.cookie = `${cookieName}=1; max-age=31536000; path=/`;
 
     logEmail().catch(error => console.error('Error logging email:', error));
   }
@@ -262,6 +322,13 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
   return (
     <div className="w-full min-h-screen flex flex-col overflow-x-hidden">
       <LanguageSelector onSelectLanguage={handleLanguageSelect} />
+      {showSignupPopup && (
+        <SignupPopup 
+          url={signupAttemptUrl} 
+          email={email} 
+          onClose={() => setShowSignupPopup(false)} 
+        />
+      )}
       <div className="absolute -top-16 -left-8 w-1/3 z-20 pointer-events-none hidden min-[860px]:block">
         <img
           src="/compressed/backgrounds/corner-cloud.webp"

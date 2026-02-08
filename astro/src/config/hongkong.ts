@@ -207,65 +207,67 @@ export const hongkongConfig = {
       ]
     },
     "signatures": false,
-    "faq": {
-      "title": "FAQ",
-      "en": {
-        "participant": {
-          "title": "Participant",
-          "questions": [
-            {
-              "question": "What is a game jam?",
-              "answer": "A game jam is an event where you build a game from scratch in a short time period! It's all about creativity, teamwork, and having fun while learning new skills."
-            },
-            {
-              "question": "Am I eligible?",
-              "answer": "If you're a high schooler (or younger), you're eligible! No prior experience required - just bring your enthusiasm and willingness to learn."
-            },
-            {
-              "question": "But I've never hacked before!",
-              "answer": "Perfect! Game jams are designed for beginners. You'll have workshops, mentors, and teammates to help you every step of the way."
-            },
-            {
-              "question": "All this, for free?",
-              "answer": "Yes! Everything is completely free - venue, food, swag, workshops, and prizes. Hack Club covers all costs so you can focus on creating."
-            },
-            {
-              "question": "What do I need to bring?",
-              "answer": "Just bring yourself, a laptop, charger, and any personal items you need. We'll provide food, drinks, and everything else!"
-            }
-          ],
-          "buttonText": "Check out the parent guide"
-        }
-      },
-      "zh": {
-        "participant": {
-          "title": "參加者",
-          "questions": [
-            {
-              "question": "什麼是遊戲開發活動？",
-              "answer": "遊戲開發活動是一個在短時間內從零開始製作遊戲的活動！這是關於創意、團隊合作，以及在學習新技能的同時享受樂趣。"
-            },
-            {
-              "question": "我符合資格嗎？",
-              "answer": "如果你是中學生（或更年輕），你就符合資格！無需任何經驗 - 只需帶來你的熱情和學習意願。"
-            },
-            {
-              "question": "但我從未參加過這類活動！",
-              "answer": "很好！遊戲開發活動專為初學者設計。你將有工作坊、導師和隊友在每一步幫助你。"
-            },
-            {
-              "question": "這一切都是免費的？",
-              "answer": "是的！一切都是完全免費的 - 場地、食物、紀念品、工作坊和獎品。Hack Club 承擔所有費用，讓你專注於創作。"
-            },
-            {
-              "question": "我需要帶什麼？",
-              "answer": "只需帶上你自己、一台筆記本電腦、充電器和任何你需要的個人物品。我們會提供食物、飲料和其他一切！"
-            }
-          ],
-          "buttonText": "查看家長指南"
+      "faq": {
+        "title": "FAQ",
+        "en": {
+          "participant": {
+            "title": "Participant",
+            "questions": [
+              {
+                "question": "What is a game jam?",
+                "answer": "A game jam is an event where you build a game from scratch in a short time period! It's all about creativity, teamwork, and having fun while learning new skills."
+              },
+              {
+                "question": "Am I eligible?",
+                "answer": "If you're a high schooler (or younger), you're eligible! No prior experience required - just bring your enthusiasm and willingness to learn."
+              },
+              {
+                "question": "But I've never hacked before!",
+                "answer": "Perfect! Game jams are designed for beginners. You'll have workshops, mentors, and teammates to help you every step of the way."
+              },
+              {
+                "question": "All this, for free?",
+                "answer": "Yes! Everything is completely free - venue, food, swag, workshops, and prizes. Hack Club covers all costs so you can focus on creating."
+              },
+              {
+                "question": "What do I need to bring?",
+                "answer": "Just bring yourself, a laptop, charger, and any personal items you need. We'll provide food, drinks, and everything else!"
+              }
+            ],
+            "buttonText": "Check out the parent guide",
+            "buttonHref": "https://docs.google.com/document/d/1Iaj3re3NULerjCcAIXC4G-Ishd1TmP9Ojw2xH8l58ik/edit?tab=t.0#heading=h.12mg8uzylly"
+          }
+        },
+        "zh": {
+          "participant": {
+            "title": "參加者",
+            "questions": [
+              {
+                "question": "什麼是遊戲開發活動？",
+                "answer": "遊戲開發活動是一個在短時間內從零開始製作遊戲的活動！這是關於創意、團隊合作，以及在學習新技能的同時享受樂趣。"
+              },
+              {
+                "question": "我符合資格嗎？",
+                "answer": "如果你是中學生（或更年輕），你就符合資格！無需任何經驗 - 只需帶來你的熱情和學習意願。"
+              },
+              {
+                "question": "但我從未參加過這類活動！",
+                "answer": "很好！遊戲開發活動專為初學者設計。你將有工作坊、導師和隊友在每一步幫助你。"
+              },
+              {
+                "question": "這一切都是免費的？",
+                "answer": "是的！一切都是完全免費的 - 場地、食物、紀念品、工作坊和獎品。Hack Club 承擔所有費用，讓你專注於創作。"
+              },
+              {
+                "question": "我需要帶什麼？",
+                "answer": "只需帶上你自己、一台筆記本電腦、充電器和任何你需要的個人物品。我們會提供食物、飲料和其他一切！"
+              }
+            ],
+            "buttonText": "查看家長指南",
+            "buttonHref": "https://docs.google.com/document/d/1Iaj3re3NULerjCcAIXC4G-Ishd1TmP9Ojw2xH8l58ik/edit?tab=t.0#heading=h.12mg8uzylly"
+          }
         }
       }
-    }
   }
 };
 

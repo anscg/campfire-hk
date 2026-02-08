@@ -833,7 +833,7 @@ function App({slug, content}: {slug: string | undefined, content: SatelliteConte
                     {q.answer}
                   </FaqQuestion>
                 ))}
-                <FaqButton content={faqContent.participant.buttonText} />
+                <FaqButton content={faqContent.participant.buttonText} href={faqContent.participant.buttonHref} />
               </div>
             </div>
           </div>

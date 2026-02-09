@@ -166,6 +166,12 @@ export const hongkongConfig = {
           "tier": "Silver"
         },
         {
+          "sponsor": "Nex",
+          "logo": "/Nex.png",
+          "link": "https://nex.inc/",
+          "tier": "Gold"
+        },
+        {
           "sponsor": "BSD Education",
           "logo": "/BSD Education Logo - In Shape.png",
           "link": "https://bsd.education",

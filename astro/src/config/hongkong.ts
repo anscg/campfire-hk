@@ -194,12 +194,6 @@ export const hongkongConfig = {
           "logo": "/The Well.jpeg",
           "link": "https://maps.app.goo.gl/q8QXVc9efLeaKw5j8",
           "tier": "Gold"
-        },
-        {
-          "sponsor": "Chong Lap",
-          "logo": "/chonglap.png",
-          "link": "https://hk.chonglap.com",
-          "tier": "Silver"
         }
       ]
     },

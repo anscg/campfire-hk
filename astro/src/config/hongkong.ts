@@ -136,13 +136,13 @@ export const hongkongConfig = {
           "date": "Feb 28th",
           "items": [
             { "time": "9:00 AM", "activity": "Doors open" },
-            { "time": "9:30 AM", "activity": "Opening Ceremony" },
-            { "time": "10:00 AM", "activity": "Workshop: Intro to Game Development" },
+            { "time": "10:00 AM", "activity": "Opening Ceremony" },
+            { "time": "11:00 AM", "activity": "Workshop: Intro to Game Development" },
             { "time": "12:00 PM", "activity": "Lunch" },
             { "time": "1:00 PM", "activity": "Hacking begins!" },
-            { "time": "3:00 PM", "activity": "Workshop: Game Design Basics" },
+            { "time": "4:00 PM", "activity": "Workshop: Game Design Basics" },
             { "time": "6:00 PM", "activity": "Dinner" },
-            { "time": "7:00 PM", "activity": "Evening activities" }
+            { "time": "7:00 PM", "activity": "Project Demo 1" }
           ]
         },
         {
@@ -151,8 +151,9 @@ export const hongkongConfig = {
             { "time": "9:00 AM", "activity": "Doors open" },
             { "time": "12:00 PM", "activity": "Lunch" },
             { "time": "3:00 PM", "activity": "Submissions close" },
-            { "time": "3:30 PM", "activity": "Project demos" },
-            { "time": "5:00 PM", "activity": "Awards & Closing Ceremony" }
+            { "time": "3:30 PM", "activity": "Project Demo 2" },
+            { "time": "5:00 PM", "activity": "Awards & Closing Ceremony" },
+            { "time": "7:00 PM", "activity": "Event ends" } 
           ]
         }
       ]

@@ -199,7 +199,7 @@ export const hongkongConfig = {
         {
           "sponsor": "CodeCrafters",
           "logo": "/CodeCrafters.png",
-          "link": "https://https://codecrafters.io/",
+          "link": "https://codecrafters.io/",
           "tier": "Gold"
         },
         {

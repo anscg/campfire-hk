@@ -195,6 +195,18 @@ export const hongkongConfig = {
           "logo": "/The Well.jpeg",
           "link": "https://maps.app.goo.gl/q8QXVc9efLeaKw5j8",
           "tier": "Gold"
+        },
+        {
+          "sponsor": "CodeCrafters",
+          "logo": "/CodeCrafters.png",
+          "link": "https://https://codecrafters.io/",
+          "tier": "Gold"
+        },
+        {
+          "sponsor": ".xyz Domain Names",
+          "logo": "/dot_xyz.png",
+          "link": "https://gen.xyz/",
+          "tier": "Gold"
         }
       ]
     },

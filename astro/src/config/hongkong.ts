@@ -200,13 +200,19 @@ export const hongkongConfig = {
           "sponsor": "CodeCrafters",
           "logo": "/CodeCrafters.png",
           "link": "https://codecrafters.io/",
-          "tier": "Gold"
+          "tier": "Silver"
         },
         {
           "sponsor": ".xyz Domain Names",
           "logo": "/dot_xyz.png",
           "link": "https://gen.xyz/",
-          "tier": "Gold"
+          "tier": "Silver"
+        },
+        {
+          "sponsor": "Jane Street",
+          "logo": "/jane_street.png",
+          "link": "https://www.janestreet.com/",
+          "tier": "Silver"
         }
       ]
     },
@@ -216,6 +222,11 @@ export const hongkongConfig = {
           "sponsor": "U-Fire",
           "logo": "/U-FIRE.jpeg",
           "link": "https://ufire.org"
+        },
+        {
+          "sponsor": "Hack Club",
+          "logo": "/hackclub.png",
+          "link": "https://hackclub.com/"
         }
       ]
     },

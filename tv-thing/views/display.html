@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap");
+
+            @font-face {
+                font-family: "Dream Planner";
+                src: url("https://www.campfire.hk/fonts/dreamplanner.woff")
+                    format("woff");
+                font-weight: normal;
+                font-style: normal;
+            }
+
+            * {
+                font-family: "IBM Plex Sans", sans-serif;
+                margin: 0;
+            }
+
+            body {
+                background-color: black;
+                color: #fafafa;
+                transition: background-color 100ms ease-in-out;
+            }
+        </style>
+    </head>
+    <body>
+        <div
+            style="display: flex; align-items: center; justify-content: center"
+        >
+            <img
+                style="width: 25vw; border-radius: 2vw"
+                src="https://cdn.hackclub.com/019c80c0-e486-71f8-812a-a6d775a257aa/tv.png"
+            />
+
+            <div
+                style="
+                    height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    margin-left: 4vw;
+                "
+            >
+                <div style="transform: rotate(-2.97deg); width: min-content">
+                    <h1
+                        style="
+                            font-family: &quot;Dream Planner&quot;, sans-serif;
+                            color: #fcf5ed;
+                            font-size: clamp(83px, 9.5vw, 158px);
+                            font-weight: normal;
+                            line-height: 1;
+                            margin-bottom: -0.05em;
+                            white-space: nowrap;
+                            text-shadow: rgba(0, 0, 0, 0.25) 5px 8px 0px;
+                        "
+                    >
+                        CAMPFIRE
+                    </h1>
+                    <h3
+                        style="
+                            font-family: &quot;Dream Planner&quot;, sans-serif;
+                            color: #fcf5ed;
+                            font-size: clamp(41px, 4.8vw, 65px);
+                            font-weight: normal;
+                            line-height: 1;
+                            margin-bottom: 0.5em;
+                            text-align: right;
+                            white-space: nowrap;
+                            text-shadow: rgba(0, 0, 0, 0.25) 5px 8px 0px;
+                        "
+                    >
+                        HONG KONG
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+        <div
+            style="
+                position: absolute;
+                bottom: 5vw;
+                left: 0;
+                right: 0;
+                text-align: center;
+                margin: 0 auto;
+                font-size: 3vw;
+            "
+        >
+            <div
+                style="max-width: 50vw; margin: 0 auto; text-align: center"
+                id="message"
+            ></div>
+        </div>
+
+        <div style="position: absolute; top: 2vw; right: 2vw">
+            <div
+                style="
+                    background-color: rgba(0, 0, 0, 0.65);
+                    color: #ffffff;
+                    padding: 0.8vw 1.2vw;
+                    border-radius: 0.8vw;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+                    display: inline-block;
+                    text-align: left;
+                    min-width: 18vw;
+                "
+            >
+                <h3
+                    style="
+                        font-size: 1.8vw;
+                        font-weight: normal;
+                        margin: 0 0 0.4vw 0;
+                    "
+                >
+                    Wi-Fi:
+                    <strong style="font-weight: 700; color: #ffffff"
+                        >CAMPFIRE</strong
+                    >
+                </h3>
+                <h3 style="font-size: 1.8vw; font-weight: normal; margin: 0">
+                    Password:
+                    <strong style="font-weight: 700; color: #ffffff"
+                        >CAMPFIRE@HKG</strong
+                    >
+                </h3>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            const socket = io();
+            const jsConfetti = new JSConfetti();
+
+            socket.on("refresh", () => {
+                location.reload();
+            });
+
+            socket.on("emoji", (emoji) => {
+                jsConfetti.addConfetti({
+                    emojis: [emoji],
+                });
+            });
+
+            let timeout;
+
+            socket.on("message", (message) => {
+                document.getElementById("message").innerText = `"${message}"`;
+
+                if (timeout) {
+                    clearTimeout(timeout);
+                }
+
+                timeout = setTimeout(() => {
+                    document.getElementById("message").innerText = "";
+                }, 10000);
+            });
+
+            socket.on("color", (color) => {
+                document.body.style.backgroundColor = color;
+            });
+        </script>
+    </body>
+</html>

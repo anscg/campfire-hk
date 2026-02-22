@@ -6,11 +6,11 @@ code powering the lobby TV for [Campfire HK](https://campfire.hk).
 
 ((forked from [assemble tv thing](https://github.com/hackclub/assemble-tv-thing)))
 
-![](https://cdn.hackclub.com/rescue?url=cloud-jmau183zw-hack-club-bot.vercel.app/0img_20220805_193418891.jpg)
-
-^ this is when assemble's it got hacked
-
-(don't have any better photos)
+use this for your campfire:
+```
+find . -type f -exec sed -i 's/Hong Kong/your city here/g' {} +
+```
+replace your city here with your city name
 
 ## how to run
 

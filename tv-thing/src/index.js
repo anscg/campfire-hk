@@ -8,10 +8,18 @@ const io = new Server(server);
 
 let color = "black";
 
+const bannedEmojis = new Set(["💩", "🖕", "👎", "🔞", "🚫"]);
+
 io.on("connection", (socket) => {
   socket.emit("color", color);
 
   socket.on("emoji", (emoji) => {
+    // Block banned emojis before broadcasting
+    if (bannedEmojis.has(emoji)) {
+      // Notify the sender that their emoji was blocked
+      socket.emit("emojiBlocked", { emoji, reason: "banned" });
+      return;
+    }
     socket.broadcast.emit("emoji", emoji);
   });
 

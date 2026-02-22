@@ -80,6 +80,7 @@
             </div>
         </div>
 
+        <!-- Scrolling message bar -->
         <div
             style="
                 position: absolute;
@@ -97,7 +98,8 @@
             ></div>
         </div>
 
-        <div style="position: absolute; top: 2vw; right: 2vw">
+        <!-- Wi-Fi info — upper right -->
+        <div style="position: absolute; top: 2vw; right: 2vw; z-index: 9999">
             <div
                 style="
                     background-color: rgba(0, 0, 0, 0.65);
@@ -132,6 +134,28 @@
             </div>
         </div>
 
+        <!-- URL label — lower left -->
+        <div style="position: absolute; bottom: 2vw; left: 2vw; z-index: 9999">
+            <div
+                style="
+                    background-color: rgba(0, 0, 0, 0.65);
+                    color: #ffffff;
+                    padding: 0.8vw 1.2vw;
+                    border-radius: 0.8vw;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+                    display: inline-block;
+                    text-align: left;
+                "
+            >
+                <h3 style="font-size: 3vw; font-weight: normal; margin: 0">
+                    <strong style="font-weight: 700; color: #ffffff"
+                        >tv.campfire.hk</strong
+                    >
+                </h3>
+            </div>
+        </div>
+
         <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
         <script src="/socket.io/socket.io.js"></script>
         <script>
@@ -142,10 +166,26 @@
                 location.reload();
             });
 
+            const EMOJI_QUEUE_MAX = 5;
+            const EMOJI_DRAIN_INTERVAL_MS = 100;
+            let emojiQueue = [];
+
+            setInterval(() => {
+                if (emojiQueue.length === 0) return;
+                const emoji = emojiQueue.shift();
+                jsConfetti.addConfetti({ emojis: [emoji] });
+            }, EMOJI_DRAIN_INTERVAL_MS);
+
             socket.on("emoji", (emoji) => {
-                jsConfetti.addConfetti({
-                    emojis: [emoji],
-                });
+                if (emojiQueue.length >= EMOJI_QUEUE_MAX) {
+                    const allSame = emojiQueue.every((e) => e === emoji);
+                    if (allSame) {
+                        emojiQueue = [];
+                    } else {
+                        return;
+                    }
+                }
+                emojiQueue.push(emoji);
             });
 
             let timeout;

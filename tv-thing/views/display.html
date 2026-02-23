@@ -32,10 +32,24 @@
         <div
             style="display: flex; align-items: center; justify-content: center"
         >
-            <img
-                style="width: 25vw; border-radius: 2vw"
-                src="https://cdn.hackclub.com/019c80c0-e486-71f8-812a-a6d775a257aa/tv.png"
-            />
+            <div style="position: relative; width: 25vw; flex-shrink: 0">
+                <img
+                    style="width: 100%; border-radius: 2vw; display: block"
+                    src="https://cdn.hackclub.com/019c8a2c-3ee0-7398-8721-d6bd7a9ced6d/tv.png"
+                />
+                <img
+                    style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        z-index: 999999;
+                        pointer-events: none;
+                    "
+                    src="https://cdn.hackclub.com/019c8a2c-eb56-7dff-bc85-e7a760754b68/frame_375.png"
+                />
+            </div>
 
             <div
                 style="

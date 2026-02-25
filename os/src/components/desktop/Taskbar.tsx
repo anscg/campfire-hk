@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { taskbarButtonRects } from "@/lib/taskbarRefs";
 import { IconRenderer } from "@/lib/iconRenderer";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // ============================================================
 // Now-Playing Ticker Hook — polls /api/music/queue every 3s

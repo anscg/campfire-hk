@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 // Receipts Window — full transaction ledger for the current user
 // ============================================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 interface Transaction {
   _id: string;

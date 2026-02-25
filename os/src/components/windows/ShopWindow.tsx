@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { SHOP_ITEMS, AUCTION_ITEMS, type ShopItem, type AuctionItem } from "@/lib/shopItems";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // ============================================================
 // Shop Window

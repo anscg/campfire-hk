@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const YT_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || "";
 
 const BOOST_XP_COST = 75;

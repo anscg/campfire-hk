@@ -2,7 +2,7 @@
 // API Client - communicates with Express backend
 // ============================================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) {

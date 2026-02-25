@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # These NEXT_PUBLIC_* vars are baked into the Next.js bundle at build time.
+        # They are read from your .env file (or the environment) by Compose.
+        NEXT_PUBLIC_CONVEX_URL: ${NEXT_PUBLIC_CONVEX_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_CONVEX_SITE_URL: ${NEXT_PUBLIC_CONVEX_SITE_URL}
+        NEXT_PUBLIC_YOUTUBE_API_KEY: ${NEXT_PUBLIC_YOUTUBE_API_KEY}
+    # Runtime environment variables (server-side only, not baked into the bundle)
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"   # Next.js
+      - "3001:3001"   # Express API server
+    restart: unless-stopped

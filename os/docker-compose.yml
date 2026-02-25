@@ -13,7 +13,4 @@ services:
     # Runtime environment variables (server-side only, not baked into the bundle)
     env_file:
       - .env
-    ports:
-      - "3000:3000"   # Next.js
-      - "3001:3001"   # Express API server
     restart: unless-stopped

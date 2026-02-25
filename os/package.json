@@ -1,0 +1,51 @@
+{
+  "name": "campfire-os",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"next dev\" \"tsx watch server/index.ts\"",
+    "dev:next": "next dev",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "next build",
+    "start": "concurrently \"next start\" \"tsx server/index.ts\"",
+    "start:next": "next start",
+    "start:server": "tsx server/index.ts",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@neodrag/react": "^2.3.1",
+    "@number-flow/react": "^0.5.14",
+    "convex": "1.27.5",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "framer-motion": "^12.34.3",
+    "jsonwebtoken": "^9.0.3",
+    "jsqr": "^1.4.0",
+    "next": "16.1.6",
+    "nodemailer": "^8.0.1",
+    "qrcode.react": "^4.2.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "resend": "^6.9.2",
+    "uuid": "^13.0.0",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20",
+    "@types/nodemailer": "^7.0.11",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}

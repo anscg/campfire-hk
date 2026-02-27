@@ -22,7 +22,12 @@ export const getById = query({
 
 // Create or update user on login
 export const upsertUser = mutation({
-  args: { email: v.string() },
+  args: {
+    email: v.string(),
+    // Optional: display name from the sign-up form (provided by Cockpit on first login).
+    // Ignored for returning users so manual name changes are preserved.
+    displayName: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("users")
@@ -34,10 +39,12 @@ export const upsertUser = mutation({
       return existing._id;
     }
 
-    // Create new user
+    // New user: prefer Cockpit display name, fall back to email prefix
+    const displayName = args.displayName?.trim() || args.email.split("@")[0];
+
     const userId = await ctx.db.insert("users", {
       email: args.email,
-      displayName: args.email.split("@")[0],
+      displayName,
       xp: 0,
       level: 1,
       createdAt: Date.now(),

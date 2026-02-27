@@ -27,14 +27,23 @@ export const listForUser = query({
             .withIndex("by_quest", (q) => q.eq("questId", quest._id))
             .collect();
 
+          const category = quest.category ?? "main";
+          const isHidden = category === "hidden";
+          const completedByMe = !!myCompletion;
+
           return {
             _id: quest._id,
             title: quest.title,
-            description: quest.description,
-            xpReward: quest.xpReward,
+            // Obfuscate description for hidden quests unless participant already completed it
+            description: isHidden && !completedByMe
+              ? (quest.teaserDescription ?? "???")
+              : quest.description,
+            // Obfuscate XP reward for hidden quests unless completed
+            xpReward: isHidden && !completedByMe ? null : quest.xpReward,
             maxCompletions: quest.maxCompletions ?? null,
             icon: quest.icon ?? "📋",
-            completedByMe: !!myCompletion,
+            category,
+            completedByMe,
             completedAt: myCompletion?.completedAt ?? null,
             totalCompletions: completions.length,
           };
@@ -83,6 +92,8 @@ export const listAll = query({
           maxCompletions: quest.maxCompletions ?? null,
           active: quest.active,
           icon: quest.icon ?? "📋",
+          category: quest.category ?? "main",
+          teaserDescription: quest.teaserDescription ?? null,
           createdAt: quest.createdAt,
           completions: completionDetails,
           totalCompletions: completions.length,
@@ -254,9 +265,72 @@ export const revokeCompletion = mutation({
     if (user) {
       const newXP = Math.max(0, user.xp - quest.xpReward);
       await ctx.db.patch(args.userId, { xp: newXP, level: Math.floor(newXP / 100) + 1 });
+
+      // Record the clawback in transactions so it shows in Receipts
+      await ctx.db.insert("transactions", {
+        userId: args.userId,
+        type: "purchase",
+        amount: quest.xpReward,
+        description: `Quest revoked: ${quest.title}`,
+        createdAt: Date.now(),
+      });
     }
 
     return { success: true };
+  },
+});
+
+// Delete a quest (admin only — removes the quest record; completions remain for XP audit)
+export const deleteQuest = mutation({
+  args: { questId: v.id("quests") },
+  handler: async (ctx, args) => {
+    const quest = await ctx.db.get(args.questId);
+    if (!quest) throw new Error("Quest not found");
+    await ctx.db.delete(args.questId);
+    return { success: true };
+  },
+});
+
+// Seed quests from a provided list (skips quests whose title already exists)
+export const seedQuests = mutation({
+  args: {
+    quests: v.array(
+      v.object({
+        title: v.string(),
+        description: v.string(),
+        xpReward: v.number(),
+        maxCompletions: v.optional(v.number()),
+        icon: v.optional(v.string()),
+        category: v.optional(v.union(v.literal("main"), v.literal("side"), v.literal("hidden"))),
+        teaserDescription: v.optional(v.string()),
+      })
+    ),
+    createdBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.query("quests").collect();
+    const existingTitles = new Set(existing.map((q) => q.title.trim().toLowerCase()));
+    let created = 0;
+    let skipped = 0;
+    for (const q of args.quests) {
+      const key = q.title.trim().toLowerCase();
+      if (existingTitles.has(key)) { skipped++; continue; }
+      await ctx.db.insert("quests", {
+        title: q.title.trim(),
+        description: q.description.trim(),
+        xpReward: q.xpReward,
+        maxCompletions: q.maxCompletions,
+        icon: q.icon ?? "📋",
+        category: q.category ?? "main",
+        teaserDescription: q.teaserDescription,
+        active: true,
+        createdBy: args.createdBy,
+        createdAt: Date.now(),
+      });
+      existingTitles.add(key);
+      created++;
+    }
+    return { created, skipped };
   },
 });
 
@@ -268,7 +342,7 @@ export const searchUsers = query({
     if (!q) return [];
     const users = await ctx.db.query("users").collect();
     return users
-      .filter((u) => !u.isAdmin && u.displayName.toLowerCase().includes(q))
+      .filter((u) => u.displayName.toLowerCase().includes(q))
       .slice(0, 10)
       .map((u) => ({ _id: u._id, displayName: u.displayName, xp: u.xp }));
   },

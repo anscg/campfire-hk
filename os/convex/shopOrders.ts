@@ -1,7 +1,23 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-// Create a new pending order (called from server purchase route)
+// Count non-cancelled orders for a given user + itemId (for per-user purchase limits)
+export const countByUserAndItem = query({
+  args: {
+    userId: v.id("users"),
+    itemId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const orders = await ctx.db
+      .query("shopOrders")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("itemId"), args.itemId))
+      .collect();
+    return orders.filter((o) => o.status !== "cancelled").length;
+  },
+});
+
+
 export const create = mutation({
   args: {
     userId: v.id("users"),

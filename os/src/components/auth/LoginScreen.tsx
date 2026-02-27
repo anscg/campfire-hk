@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import { ApiError } from "@/lib/api";
 import Image from "next/image";
 
 // ============================================================
@@ -14,11 +15,20 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  // Track whether the error is a "not on the list" rejection
+  const [notRegistered, setNotRegistered] = useState(false);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    await login(email.trim());
+    setNotRegistered(false);
+    try {
+      await login(email.trim());
+    } catch (err: any) {
+      if (err instanceof ApiError && err.status === 403) {
+        setNotRegistered(true);
+      }
+    }
   };
 
   const handleOTPChange = (index: number, value: string) => {
@@ -65,7 +75,15 @@ export default function LoginScreen() {
 
   useEffect(() => {
     clearError();
+    setNotRegistered(false);
   }, [email, clearError]);
+
+  // Detect 403 from the store error as well (login() swallows the throw)
+  useEffect(() => {
+    if (error && error.includes("participant list")) {
+      setNotRegistered(true);
+    }
+  }, [error]);
 
   return (
     <div
@@ -137,7 +155,16 @@ export default function LoginScreen() {
           </div>
         )}
 
-        {error && (
+        {/* Not-registered error — distinct styling */}
+        {notRegistered && error && (
+          <div className="mt-3 border border-orange-800 px-3 py-3 bg-orange-900/20 space-y-1">
+            <p className="text-orange-400 text-xs font-bold tracking-wider">NOT ON THE LIST</p>
+            <p className="text-orange-300/80 text-xs leading-relaxed">{error}</p>
+          </div>
+        )}
+
+        {/* Generic error */}
+        {error && !notRegistered && (
           <div className="mt-3 border border-red-800 px-3 py-2 bg-red-900/20">
             <p className="text-red-400 text-xs">{error}</p>
           </div>

@@ -60,6 +60,7 @@ export default function Taskbar() {
     useWindowStore();
   const { user, logout } = useAuthStore();
   const nowPlaying = useNowPlaying();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const handleTaskClick = (windowId: string) => {
     const win = windows.find((w) => w.id === windowId);
@@ -136,13 +137,32 @@ export default function Taskbar() {
         <Clock />
 
         {/* Logout */}
-        <button
-          onClick={logout}
-          className="h-8 px-2 hover:bg-zinc-800 transition-colors text-zinc-500 hover:text-zinc-300"
-          title="Logout"
-        >
-          <span className="text-xs font-mono">⏻</span>
-        </button>
+        {confirmLogout ? (
+          <div className="flex items-center gap-1 h-8 px-2 bg-zinc-800 text-xs font-mono">
+            <span className="text-zinc-400">logout?</span>
+            <button
+              onClick={() => { logout(); setConfirmLogout(false); }}
+              className="text-red-400 hover:text-red-300 px-1 transition-colors"
+            >
+              yes
+            </button>
+            <span className="text-zinc-600">/</span>
+            <button
+              onClick={() => setConfirmLogout(false)}
+              className="text-zinc-400 hover:text-zinc-200 px-1 transition-colors"
+            >
+              no
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmLogout(true)}
+            className="h-8 px-2 hover:bg-zinc-800 transition-colors text-zinc-500 hover:text-zinc-300"
+            title="Logout"
+          >
+            <span className="text-xs font-mono">⏻</span>
+          </button>
+        )}
       </div>
     </div>
   );

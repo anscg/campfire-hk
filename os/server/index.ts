@@ -20,6 +20,68 @@ const resend = new Resend(process.env.RESEND_API_KEY || "");
 const RESEND_FROM = process.env.RESEND_FROM || "Campfire OS <noreply@campfire.hk>";
 
 // ============================================================
+// Cockpit participant allowlist
+// ============================================================
+
+const COCKPIT_API_KEY = process.env.COCKPIT_API_KEY || "";
+const COCKPIT_EVENT_ID = process.env.COCKPIT_EVENT_ID || "rec246l5jVyPUVoL3";
+const COCKPIT_BASE = "https://cockpit.hackclub.com/api/v1";
+
+interface CockpitParticipant {
+  displayName: string;
+  email: string;
+  checkinCompleted: boolean;
+}
+
+// In-memory cache — refreshed at most once every 5 minutes
+let participantCache: Map<string, CockpitParticipant> | null = null;
+let participantCacheAt = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function getParticipants(): Promise<Map<string, CockpitParticipant>> {
+  const now = Date.now();
+  if (participantCache && now - participantCacheAt < CACHE_TTL_MS) {
+    return participantCache;
+  }
+
+  if (!COCKPIT_API_KEY) {
+    // No API key configured — return empty map (allowlist disabled in dev)
+    console.warn("[Cockpit] COCKPIT_API_KEY not set — allowlist disabled");
+    return new Map();
+  }
+
+  try {
+    const resp = await fetch(
+      `${COCKPIT_BASE}/events/${COCKPIT_EVENT_ID}/participants`,
+      { headers: { "X-API-Key": COCKPIT_API_KEY, accept: "*/*" } }
+    );
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = (await resp.json()) as { participants: CockpitParticipant[] };
+    const map = new Map<string, CockpitParticipant>();
+    for (const p of data.participants) {
+      map.set(p.email.toLowerCase().trim(), p);
+    }
+    participantCache = map;
+    participantCacheAt = now;
+    console.log(`[Cockpit] Loaded ${map.size} participants`);
+    return map;
+  } catch (err) {
+    console.error("[Cockpit] Failed to fetch participants:", err);
+    // On fetch failure, fall back to the stale cache if available
+    if (participantCache) return participantCache;
+    // If no cache at all, fail open with empty map (so the event isn't locked out)
+    return new Map();
+  }
+}
+
+// Force-refresh the cache (used by an admin route)
+async function refreshParticipants(): Promise<Map<string, CockpitParticipant>> {
+  participantCache = null;
+  participantCacheAt = 0;
+  return getParticipants();
+}
+
+// ============================================================
 // Email Templates
 // ============================================================
 
@@ -137,16 +199,30 @@ app.post("/api/auth/request-otp", async (req, res) => {
       return;
     }
 
+    const normalised = email.toLowerCase().trim();
+
+    // ── Allowlist check ──────────────────────────────────────────────────────
+    if (COCKPIT_API_KEY) {
+      const participants = await getParticipants();
+      if (!participants.has(normalised)) {
+      res.status(403).json({
+          error: "This email isn't on the Campfire Hong Kong participant list. Make sure you're using the email you signed up with.",
+          code: "not_registered",
+        });
+        return;
+      }
+    }
+
     // Generate OTP via Convex
-    const code = await convex.mutation(api.otp.generate, { email });
+    const code = await convex.mutation(api.otp.generate, { email: normalised });
 
     // Send email via Resend
     if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== "re_placeholder_replace_me") {
       const { error: sendError } = await resend.emails.send({
         from: RESEND_FROM,
-        to: email,
+        to: normalised,
         subject: `${code} — your Campfire OS login code`,
-        html: otpEmailHtml(code, email),
+        html: otpEmailHtml(code, normalised),
       });
       if (sendError) {
         console.error("[Resend] Failed to send OTP email:", sendError);
@@ -155,7 +231,7 @@ app.post("/api/auth/request-otp", async (req, res) => {
       }
     } else {
       // Dev fallback — log the code
-      console.log(`[OTP] Code for ${email}: ${code}`);
+      console.log(`[OTP] Code for ${normalised}: ${code}`);
     }
 
     res.json({ success: true, message: "OTP sent" });
@@ -174,19 +250,34 @@ app.post("/api/auth/verify-otp", async (req, res) => {
       return;
     }
 
+    const normalised = (email as string).toLowerCase().trim();
+
     // Verify OTP via Convex
-    const result = await convex.mutation(api.otp.verify, { email, code });
+    const result = await convex.mutation(api.otp.verify, { email: normalised, code });
 
     if (!result.success) {
       res.status(400).json({ error: result.error });
       return;
     }
 
-    // Create/update user
-    const userId = await convex.mutation(api.users.upsertUser, { email });
+    // Look up display name from Cockpit
+    let displayName: string | undefined;
+    if (COCKPIT_API_KEY) {
+      const participants = await getParticipants();
+      const participant = participants.get(normalised);
+      if (participant?.displayName) {
+        displayName = participant.displayName;
+      }
+    }
+
+    // Create/update user — pass Cockpit display name for new accounts
+    const userId = await convex.mutation(api.users.upsertUser, {
+      email: normalised,
+      displayName,
+    });
 
     // Generate JWT
-    const token = jwt.sign({ userId: userId.toString(), email }, JWT_SECRET, {
+    const token = jwt.sign({ userId: userId.toString(), email: normalised }, JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -255,13 +346,31 @@ app.post("/api/xp/award", authMiddleware, async (req: AuthRequest, res) => {
 // ============================================================
 
 // Mirror of src/lib/shopItems.ts — keyed by id for server-side validation
-const HARDCODED_SHOP_ITEMS: Record<string, { name: string; price: number; icon: string }> = {
-  "shop-1": { name: "Campfire Sticker Pack",   price: 100, icon: "🎁" },
-  "shop-2": { name: "Extra Submission Slot",   price: 250, icon: "➕" },
-  "shop-3": { name: "Snack Voucher",           price: 75,  icon: "🍕" },
-  "shop-4": { name: "Campfire Tote Bag",       price: 300, icon: "👜" },
-  "shop-5": { name: "Mentor Session",          price: 500, icon: "💡" },
-  "shop-6": { name: "Bubble Tea",              price: 150, icon: "🧋" },
+const HARDCODED_SHOP_ITEMS: Record<string, { name: string; price: number; icon: string; maxPerUser: number | null }> = {
+  // Merch
+  "shop-sticker":        { name: "1x Sticker",                  price: 100,  icon: "🎁", maxPerUser: null },
+  "shop-keychain":       { name: "Keychain",                    price: 500,  icon: "🔑", maxPerUser: null },
+  "shop-sticker-bundle": { name: "Sticker Bundle",              price: 500,  icon: "📦", maxPerUser: null },
+  // Physical items
+  "shop-rubber-duck":    { name: "Rubber Duck",                 price: 150,  icon: "🦆", maxPerUser: null },
+  "shop-banana":         { name: "Banana",                      price: 400,  icon: "🍌", maxPerUser: null },
+  // Food
+  "shop-sweet-potato":   { name: "Sweet Potato Stick from Muji", price: 0,  icon: "🍠", maxPerUser: null },
+  "shop-donut":          { name: "Donut",                       price: 880,  icon: "🍩", maxPerUser: null },
+  "shop-boba":           { name: "Boba",                        price: 1000, icon: "🧋", maxPerUser: null },
+  // Experiences
+  "shop-handshake":      { name: "Handshake with Anson Chung",  price: 1700, icon: "🤝", maxPerUser: 1    },
+  // Plushies / prizes
+  "shop-small-otter":    { name: "Small Otter",                 price: 1870, icon: "🦦", maxPerUser: null },
+  "shop-small-blahaj":   { name: "Small Blahaj",                price: 2000, icon: "🦈", maxPerUser: null },
+  "shop-raspberry-pi":   { name: "Raspberry Pi",                price: 2300, icon: "🖥️", maxPerUser: null },
+  "shop-large-otter":    { name: "Large Otter",                 price: 2900, icon: "🦦", maxPerUser: null },
+  "shop-power-bank":     { name: "Power Bank",                  price: 2900, icon: "🔋", maxPerUser: null },
+  "shop-large-blahaj":   { name: "Large Blahaj",                price: 3400, icon: "🦈", maxPerUser: null },
+  "shop-large-octopus":  { name: "Large Octopus",               price: 3600, icon: "🐙", maxPerUser: null },
+  // Perks
+  "shop-jane-street":    { name: "Jane Street Swag",            price: 600,  icon: "💼", maxPerUser: 1    },
+  "shop-xyz-domain":     { name: "Free .xyz Domain",            price: 1500, icon: "🌐", maxPerUser: 1    },
 };
 
 app.post(
@@ -295,6 +404,18 @@ app.post(
       if (user.xp < item.price) {
         res.status(400).json({ error: "Insufficient XP" });
         return;
+      }
+
+      // Enforce per-user purchase limit
+      if (item.maxPerUser !== null) {
+        const alreadyBought = await convex.query(api.shopOrders.countByUserAndItem, {
+          userId: req.userId as any,
+          itemId,
+        });
+        if (alreadyBought >= item.maxPerUser) {
+          res.status(400).json({ error: `You can only buy "${item.name}" ${item.maxPerUser === 1 ? "once" : `${item.maxPerUser} times`}` });
+          return;
+        }
       }
 
       // Deduct XP
@@ -758,6 +879,155 @@ app.delete(
   }
 );
 
+// DELETE /api/admin/quests/:id — admin: permanently delete a quest
+app.delete("/api/admin/quests/:id", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+    const { id } = req.params;
+    await convex.mutation(api.quests.deleteQuest, { questId: id as any });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Delete quest error:", error);
+    res.status(400).json({ error: error?.message || "Failed to delete quest" });
+  }
+});
+
+// POST /api/admin/quests/seed — admin: bulk-seed the real quest list
+const SEED_QUESTS: Array<{
+  title: string; description: string; xpReward: number;
+  maxCompletions?: number; icon?: string;
+  category: "main" | "side" | "hidden";
+  teaserDescription?: string;
+}> = [
+  // ── MAIN: everyone can obtain ──────────────────────────────────────────────
+  // Day 1
+  { category: "main", title: "Check In (Day 1)", description: "Check in at the event on Day 1.", xpReward: 100, icon: "📋" },
+  { category: "main", title: "Stand for an Hour", description: "Stand up for at least an hour during Day 1.", xpReward: 400, icon: "🧍" },
+  { category: "main", title: "Water Quest (Day 1)", description: "Stay hydrated — complete the water quest on Day 1.", xpReward: 600, icon: "💧" },
+  { category: "main", title: "Clean Desk After Lunch (Day 1)", description: "Clean your desk after lunch on Day 1.", xpReward: 300, icon: "🧹" },
+  { category: "main", title: "Workshop 1", description: "Attend and participate in Workshop 1.", xpReward: 350, icon: "🎓" },
+  { category: "main", title: "Demo 1", description: "Present at Demo 1.", xpReward: 450, icon: "🎤" },
+  { category: "main", title: "Ask Questions in Music Talk", description: "Ask at least one question during the music talk.", xpReward: 250, icon: "🎵" },
+  // Day 2
+  { category: "main", title: "Check In Before 9:15 (Day 2)", description: "Check in before 9:15 AM on Day 2.", xpReward: 150, icon: "⏰" },
+  { category: "main", title: "Water Quest (Day 2)", description: "Stay hydrated — complete the water quest on Day 2.", xpReward: 600, icon: "💧" },
+  { category: "main", title: "Clean Desk (Day 2)", description: "Clean your desk on Day 2.", xpReward: 200, icon: "🧹" },
+  { category: "main", title: "Workshop 2", description: "Attend and participate in Workshop 2.", xpReward: 300, icon: "🎓" },
+  { category: "main", title: "Demo 2", description: "Present at Demo 2.", xpReward: 450, icon: "🎤" },
+  // Side activities
+  { category: "main", title: "Introduce Game to Orgs", description: "Introduce your game to an organisation.", xpReward: 200, icon: "🤝" },
+  { category: "main", title: "Participate in Minigame", description: "Participate in a minigame.", xpReward: 300, icon: "🎮" },
+  // Game jam — everyone gets participation
+  { category: "main", title: "Game Jam: Participant", description: "Participate in the game jam and present your work.", xpReward: 500, icon: "🎮" },
+
+  // ── SIDE: mutually exclusive / competitive ─────────────────────────────────
+  { category: "side", title: "Game Jam: 1st Place", description: "Win 1st place in the game jam.", xpReward: 1500, maxCompletions: 1, icon: "🥇" },
+  { category: "side", title: "Game Jam: 2nd Place", description: "Win 2nd place in the game jam.", xpReward: 1250, maxCompletions: 1, icon: "🥈" },
+  { category: "side", title: "Game Jam: 3rd Place", description: "Win 3rd place in the game jam.", xpReward: 1000, maxCompletions: 1, icon: "🥉" },
+  { category: "side", title: "Game Jam: Special Award", description: "Win a special award at the game jam.", xpReward: 750, icon: "⭐" },
+  { category: "side", title: "Minigame: 1st Place", description: "Win 1st place in a minigame.", xpReward: 1000, icon: "🏅" },
+  { category: "side", title: "Minigame: 2nd Place", description: "Win 2nd place in a minigame.", xpReward: 750, icon: "🥈" },
+  { category: "side", title: "Minigame: 3rd Place", description: "Win 3rd place in a minigame.", xpReward: 550, icon: "🥉" },
+  { category: "side", title: "Minigame: Last Place", description: "Come last in a minigame — participation award.", xpReward: 300, icon: "🐢" },
+
+  // ── HIDDEN: secret achievements — objective & reward obfuscated from participants ─
+  {
+    category: "hidden",
+    title: "Code Hunters",
+    teaserDescription: "Secrets are hidden in plain sight.",
+    description: "Find the secret code hidden somewhere at the event. Show it to a staff member to claim.",
+    xpReward: 1000, maxCompletions: 3, icon: "🔍",
+  },
+  {
+    category: "hidden",
+    title: "Smartest Person on Earth",
+    teaserDescription: "Only the truly enlightened can claim this.",
+    description: "Buy \"Handshake With Anson Chung\" from the shop. Only one person can ever hold this title.",
+    xpReward: 1700, maxCompletions: 1, icon: "🧠",
+  },
+  {
+    category: "hidden",
+    title: "The Monkey",
+    teaserDescription: "Go bananas.",
+    description: "Purchase \"A Bunch of Bananas\" from the shop. Quota: 2 groups.",
+    xpReward: 1400, maxCompletions: 2, icon: "🐒",
+  },
+  {
+    category: "hidden",
+    title: "Quest Hunter",
+    teaserDescription: "Leave nothing on the table.",
+    description: "Complete 90% or more of the main quests. Unlimited slots.",
+    xpReward: 1600, icon: "🏹",
+  },
+  {
+    category: "hidden",
+    title: "Very Broke",
+    teaserDescription: "Sometimes less is more.",
+    description: "Be the poorest participant by the end of Day 1 (must have more than 10 XP remaining). Can tie. Quota: 1.",
+    xpReward: 1000, maxCompletions: 1, icon: "💸",
+  },
+  {
+    category: "hidden",
+    title: "Literally Bill Gates",
+    teaserDescription: "Money is just a number.",
+    description: "Be the richest participant by the end of Day 1. Can tie. Quota: 1.",
+    xpReward: 200, maxCompletions: 1, icon: "💰",
+  },
+  {
+    category: "hidden",
+    title: "Boba Addict",
+    teaserDescription: "You can never have just one.",
+    description: "Buy \"Boba\" from the shop more than once.",
+    xpReward: 1000, icon: "🧋",
+  },
+  {
+    category: "hidden",
+    title: "Shameless Advertising",
+    teaserDescription: "Spread the word.",
+    description: "Tell more than 2 groups or organisations about your game. Unlimited slots.",
+    xpReward: 670, icon: "📣",
+  },
+  {
+    category: "hidden",
+    title: "Gimme That Shiz",
+    teaserDescription: "First come, first served.",
+    description: "Be the first person to transfer XP to another participant. Quota: 1.",
+    xpReward: 800, maxCompletions: 1, icon: "🛍️",
+  },
+  {
+    category: "hidden",
+    title: "Lowkey Brainrotted",
+    teaserDescription: "Some things can't be unseen.",
+    description: "Do the 67 hands to any orgs. Quota: 1.",
+    xpReward: 400, maxCompletions: 1, icon: "🤡",
+  },
+  {
+    category: "hidden",
+    title: "Minigame Master",
+    teaserDescription: "Consistent excellence.",
+    description: "Podium in more than one minigame. Unlimited slots.",
+    xpReward: 800, icon: "🏆",
+  },
+];
+
+app.post("/api/admin/quests/seed", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+    const result = await convex.mutation(api.quests.seedQuests, {
+      quests: SEED_QUESTS,
+      createdBy: req.userId as any,
+    });
+    res.json(result);
+  } catch (error: any) {
+    console.error("Seed quests error:", error);
+    res.status(500).json({ error: error?.message || "Failed to seed quests" });
+  }
+});
+
 // GET /api/admin/users/search?q=... — admin: search users for verification
 app.get("/api/admin/users/search", authMiddleware, async (req: AuthRequest, res) => {
   try {
@@ -770,6 +1040,20 @@ app.get("/api/admin/users/search", authMiddleware, async (req: AuthRequest, res)
   } catch (error) {
     console.error("User search error:", error);
     res.status(500).json({ error: "Failed to search users" });
+  }
+});
+
+// POST /api/admin/participants/refresh — admin: force-refresh the Cockpit participant cache
+app.post("/api/admin/participants/refresh", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+    const map = await refreshParticipants();
+    res.json({ success: true, count: map.size });
+  } catch (error: any) {
+    console.error("Participant refresh error:", error);
+    res.status(500).json({ error: error?.message || "Failed to refresh participants" });
   }
 });
 
@@ -796,6 +1080,12 @@ app.post("/api/admin/xp", authMiddleware, async (req: AuthRequest, res) => {
         amount,
         reason: `[Admin] ${reason.trim()}`,
       });
+      await convex.mutation(api.transactions.record, {
+        userId: userId as any,
+        type: "earn",
+        amount,
+        description: `[Admin] ${reason.trim()}`,
+      });
     } else if (amount < 0) {
       // Clamp deduction to available XP
       const deduct = Math.min(Math.abs(amount), target.xp);
@@ -807,6 +1097,12 @@ app.post("/api/admin/xp", authMiddleware, async (req: AuthRequest, res) => {
         id: userId as any,
         amount: deduct,
         reason: `[Admin] ${reason.trim()}`,
+      });
+      await convex.mutation(api.transactions.record, {
+        userId: userId as any,
+        type: "purchase",
+        amount: deduct,
+        description: `[Admin deduction] ${reason.trim()}`,
       });
     } else {
       res.status(400).json({ error: "Amount cannot be zero" });
@@ -980,6 +1276,12 @@ app.post("/api/music/add", authMiddleware, async (req: AuthRequest, res) => {
         amount: ADD_XP_COST,
         reason: "Added a song to the music queue",
       });
+      await convex.mutation(api.transactions.record, {
+        userId: req.userId as any,
+        type: "purchase",
+        amount: ADD_XP_COST,
+        description: `Added song to queue: ${title}`,
+      });
     }
     res.json({ success: true, id });
   } catch (error: any) {
@@ -988,8 +1290,8 @@ app.post("/api/music/add", authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/music/boost/:id — authenticated: boost a song (costs 75 XP)
-const BOOST_XP_COST = 75;
+// POST /api/music/boost/:id — authenticated: boost a song (costs 25 XP)
+const BOOST_XP_COST = 25;
 app.post("/api/music/boost/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -1004,6 +1306,12 @@ app.post("/api/music/boost/:id", authMiddleware, async (req: AuthRequest, res) =
       id: req.userId as any,
       amount: BOOST_XP_COST,
       reason: "Boosted a song in the music queue",
+    });
+    await convex.mutation(api.transactions.record, {
+      userId: req.userId as any,
+      type: "purchase",
+      amount: BOOST_XP_COST,
+      description: "Boosted a song in the music queue",
     });
     res.json({ success: true, newXP: result.xp });
   } catch (error: any) {
@@ -1046,6 +1354,12 @@ app.post("/api/music/participant-stop", authMiddleware, async (req: AuthRequest,
       amount: STOP_XP_COST,
       reason: "Stopped the music",
     });
+    await convex.mutation(api.transactions.record, {
+      userId: req.userId as any,
+      type: "purchase",
+      amount: STOP_XP_COST,
+      description: "Stopped the music",
+    });
     res.json({ success: true, newXP: result.xp });
   } catch (error: any) {
     console.error("Music participant-stop error:", error);
@@ -1066,6 +1380,12 @@ app.post("/api/music/participant-skip", authMiddleware, async (req: AuthRequest,
       id: req.userId as any,
       amount: SKIP_XP_COST,
       reason: "Skipped a song in the music queue",
+    });
+    await convex.mutation(api.transactions.record, {
+      userId: req.userId as any,
+      type: "purchase",
+      amount: SKIP_XP_COST,
+      description: "Skipped a song in the music queue",
     });
     res.json({ success: true, newXP: result.xp });
   } catch (error: any) {
@@ -1152,6 +1472,183 @@ app.delete("/api/music/clear", authMiddleware, async (req: AuthRequest, res) => 
   } catch (error: any) {
     console.error("Music clear error:", error);
     res.status(400).json({ error: error?.message || "Failed to clear queue" });
+  }
+});
+
+// ============================================================
+// Stocks
+// ============================================================
+
+const STOCK_DEFS = [
+  { ticker: "CAMPF",  name: "Campfire Inc.",     icon: "🔥", startPrice: 100 },
+  { ticker: "HACKC",  name: "Hack Club",          icon: "🏴‍☠️", startPrice: 80  },
+  { ticker: "BOBA",   name: "Boba Corp.",          icon: "🧋", startPrice: 50  },
+  { ticker: "SLEEPZ", name: "SleepZ Holdings",    icon: "😴", startPrice: 30  },
+  { ticker: "CRUNCH", name: "CrunchTime Ltd.",    icon: "💻", startPrice: 60  },
+  { ticker: "MEMER",  name: "Meme Exchange",      icon: "🐸", startPrice: 40  },
+  { ticker: "BAGEL",  name: "Bagel Finance",      icon: "🥯", startPrice: 70  },
+  { ticker: "VIBE",   name: "VibeCheck Capital",  icon: "✨", startPrice: 90  },
+];
+
+// Seed + start the price tick loop once on startup
+(async () => {
+  try {
+    await convex.mutation(api.stocks.resetStocks);
+    console.log("[Stocks] Reset stock prices to start values");
+  } catch (e) {
+    console.error("[Stocks] Reset error:", e);
+  }
+
+  // Tick every 4 seconds
+  setInterval(async () => {
+    try {
+      // Gather total shares per ticker from Convex
+      const holdings: { ticker: string; totalShares: number }[] = [];
+      for (const def of STOCK_DEFS) {
+        const rows = await convex.query(api.stocks.getTickerHoldings, { ticker: def.ticker });
+        const total = rows.reduce((sum: number, r: any) => sum + r.shares, 0);
+        holdings.push({ ticker: def.ticker, totalShares: total });
+      }
+      await convex.mutation(api.stocks.tick, { holdings });
+    } catch (e) {
+      // silent — don't crash the server on a failed tick
+    }
+  }, 2000);
+})();
+
+// GET /api/stocks/prices — public
+app.get("/api/stocks/prices", async (_req, res) => {
+  try {
+    const prices = await convex.query(api.stocks.getPrices);
+    // Enrich with static metadata
+    const enriched = STOCK_DEFS.map((def) => {
+      const row = prices.find((p: any) => p.ticker === def.ticker);
+      return {
+        ticker: def.ticker,
+        name: def.name,
+        icon: def.icon,
+        startPrice: def.startPrice,
+        price: row?.price ?? def.startPrice,
+        history: row?.history ?? [def.startPrice],
+        updatedAt: row?.updatedAt ?? Date.now(),
+      };
+    });
+    res.json(enriched);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// GET /api/stocks/portfolio — authenticated
+app.get("/api/stocks/portfolio", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const holdings = await convex.query(api.stocks.getHoldings, { userId: req.userId as any });
+    res.json(holdings);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// POST /api/stocks/buy
+app.post("/api/stocks/buy", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { ticker, shares } = req.body;
+    if (!ticker || !shares || shares < 1) {
+      res.status(400).json({ error: "ticker and shares (>=1) required" }); return;
+    }
+    const def = STOCK_DEFS.find((d) => d.ticker === ticker);
+    if (!def) { res.status(400).json({ error: "Unknown ticker" }); return; }
+
+    // Get current price
+    const prices = await convex.query(api.stocks.getPrices);
+    const row = prices.find((p: any) => p.ticker === ticker);
+    const price: number = row?.price ?? def.startPrice;
+    const totalCost = Math.round(price * shares);
+
+    // Check XP
+    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    if (user.xp < totalCost) {
+      res.status(400).json({ error: `Insufficient XP (need ${totalCost}, have ${user.xp})` }); return;
+    }
+
+    // Deduct XP
+    await convex.mutation(api.users.deductXP, {
+      id: req.userId as any,
+      amount: totalCost,
+      reason: `Bought ${shares}x ${ticker} @ ${price} XP/share`,
+    });
+
+    // Record holding
+    await convex.mutation(api.stocks.buyStock, {
+      userId: req.userId as any,
+      ticker,
+      shares,
+      pricePerShare: price,
+    });
+
+    // Log transaction for Receipts
+    await convex.mutation(api.transactions.record, {
+      userId: req.userId as any,
+      type: "purchase",
+      amount: totalCost,
+      description: `Bought ${shares}x ${ticker} @ ${price.toFixed(2)} XP/share`,
+    });
+
+    const updated = await convex.query(api.users.getById, { id: req.userId as any });
+    res.json({ success: true, spent: totalCost, pricePerShare: price, newXP: updated?.xp });
+  } catch (error: any) {
+    console.error("Stocks buy error:", error);
+    res.status(400).json({ error: error?.message || "Failed to buy" });
+  }
+});
+
+// POST /api/stocks/sell
+app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { ticker, shares } = req.body;
+    if (!ticker || !shares || shares < 1) {
+      res.status(400).json({ error: "ticker and shares (>=1) required" }); return;
+    }
+    const def = STOCK_DEFS.find((d) => d.ticker === ticker);
+    if (!def) { res.status(400).json({ error: "Unknown ticker" }); return; }
+
+    // Get current price
+    const prices = await convex.query(api.stocks.getPrices);
+    const row = prices.find((p: any) => p.ticker === ticker);
+    const price: number = row?.price ?? def.startPrice;
+    const totalGain = Math.round(price * shares);
+
+    // Sell (removes shares from holding)
+    await convex.mutation(api.stocks.sellStock, {
+      userId: req.userId as any,
+      ticker,
+      shares,
+    });
+
+    // Award XP
+    await convex.mutation(api.users.addXP, {
+      id: req.userId as any,
+      amount: totalGain,
+      reason: `Sold ${shares}x ${ticker} @ ${price} XP/share`,
+    });
+
+    // Log transaction for Receipts
+    await convex.mutation(api.transactions.record, {
+      userId: req.userId as any,
+      type: "earn",
+      amount: totalGain,
+      description: `Sold ${shares}x ${ticker} @ ${price.toFixed(2)} XP/share`,
+    });
+
+    const updated = await convex.query(api.users.getById, { id: req.userId as any });
+    res.json({ success: true, gained: totalGain, pricePerShare: price, newXP: updated?.xp });
+  } catch (error: any) {
+    console.error("Stocks sell error:", error);
+    res.status(400).json({ error: error?.message || "Failed to sell" });
   }
 });
 

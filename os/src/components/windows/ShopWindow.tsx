@@ -33,6 +33,7 @@ export default function ShopWindow() {
   const [sortOpen, setSortOpen] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [confirmItem, setConfirmItem] = useState<ShopItem | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -54,9 +55,8 @@ export default function ShopWindow() {
     msgTimerRef.current = setTimeout(() => setMessage(null), 3000);
   };
 
-  const handlePurchase = async (itemId: string, price: number) => {
-    if (!user || user.xp < price) return;
-    setPurchasing(itemId);
+  const executePurchase = async (item: ShopItem) => {
+    setPurchasing(item.id);
     setMessage(null);
     try {
       const res = await fetch(`${API_URL}/api/shop/purchase`, {
@@ -65,11 +65,11 @@ export default function ShopWindow() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ itemId }),
+        body: JSON.stringify({ itemId: item.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Purchase failed");
-      showMessage({ type: "success", text: "Purchase successful!" });
+      showMessage({ type: "success", text: `Purchased ${item.name}!` });
       await fetchUser();
     } catch (e: any) {
       showMessage({ type: "error", text: e.message || "Purchase failed" });
@@ -78,10 +78,86 @@ export default function ShopWindow() {
     }
   };
 
+  const handleBuyClick = (item: ShopItem) => {
+    if (!user || user.xp < item.price || item.tag === "TBC") return;
+    setConfirmItem(item);
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmItem) return;
+    const item = confirmItem;
+    setConfirmItem(null);
+    await executePurchase(item);
+  };
+
   const displayItems = sortItems(SHOP_ITEMS, sort);
 
+  // Group items by category when using default sort
+  const grouped: { category: string; items: ShopItem[] }[] = [];
+  if (sort === "default") {
+    const seen = new Map<string, ShopItem[]>();
+    for (const item of displayItems) {
+      if (!seen.has(item.category)) seen.set(item.category, []);
+      seen.get(item.category)!.push(item);
+    }
+    seen.forEach((items, category) => grouped.push({ category, items }));
+  }
+
   return (
-    <div className="h-full bg-zinc-900 flex flex-col font-mono">
+    <div className="h-full bg-zinc-900 flex flex-col font-mono relative">
+
+      {/* Confirmation modal overlay */}
+      {confirmItem && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.8)" }}
+        >
+          <div
+            className="flex flex-col gap-4 p-5 w-72"
+            style={{
+              background: "#111113",
+              border: "1px solid #3f3f46",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{confirmItem.icon}</span>
+              <div>
+                <p className="text-xs font-bold tracking-widest text-white">{confirmItem.name}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">{confirmItem.description}</p>
+              </div>
+            </div>
+            <div className="border border-zinc-800 px-3 py-2 flex items-center justify-between">
+              <span className="text-[10px] text-zinc-500 tracking-widest">COST</span>
+              <span className="text-sm font-bold text-yellow-400">{confirmItem.price} XP</span>
+            </div>
+            <div className="border border-zinc-800 px-3 py-2 flex items-center justify-between">
+              <span className="text-[10px] text-zinc-500 tracking-widest">BALANCE AFTER</span>
+              <span
+                className="text-sm font-bold"
+                style={{ color: (user?.xp ?? 0) - confirmItem.price < 0 ? "rgb(239,68,68)" : "rgba(255,255,255,0.7)" }}
+              >
+                {(user?.xp ?? 0) - confirmItem.price} XP
+              </span>
+            </div>
+            <div className="flex gap-2 mt-1">
+              <button
+                onClick={() => setConfirmItem(null)}
+                className="flex-1 py-2 text-xs font-bold tracking-widest border"
+                style={{ border: "1px solid #3f3f46", color: "#71717a", background: "transparent" }}
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={handleConfirm}
+                className="flex-1 py-2 text-xs font-bold tracking-widest"
+                style={{ background: "rgb(234,179,8)", color: "#000", border: "1px solid rgb(234,179,8)" }}
+              >
+                CONFIRM
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700">
@@ -139,15 +215,35 @@ export default function ShopWindow() {
       <div className="flex-1 overflow-y-auto">
 
         {/* Regular items */}
-        {displayItems.map((item) => (
-          <ShopRow
-            key={item.id}
-            item={item}
-            userXp={user?.xp ?? 0}
-            purchasing={purchasing}
-            onBuy={handlePurchase}
-          />
-        ))}
+        {sort === "default" ? (
+          grouped.map(({ category, items }) => (
+            <div key={category}>
+              <div className="flex items-center gap-3 px-4 py-1.5 border-b border-zinc-800 bg-zinc-800/40">
+                <span className="text-[10px] tracking-widest text-zinc-500 font-bold">{category.toUpperCase()}</span>
+                <div className="flex-1 border-t border-zinc-700" />
+              </div>
+              {items.map((item) => (
+                <ShopRow
+                  key={item.id}
+                  item={item}
+                  userXp={user?.xp ?? 0}
+                  purchasing={purchasing}
+                  onBuy={handleBuyClick}
+                />
+              ))}
+            </div>
+          ))
+        ) : (
+          displayItems.map((item) => (
+            <ShopRow
+              key={item.id}
+              item={item}
+              userXp={user?.xp ?? 0}
+              purchasing={purchasing}
+              onBuy={handleBuyClick}
+            />
+          ))
+        )}
 
         {/* Auction divider */}
         <div className="flex items-center gap-3 px-4 py-2 border-t border-b border-zinc-700 bg-zinc-800">
@@ -177,22 +273,44 @@ function ShopRow({
   item: ShopItem;
   userXp: number;
   purchasing: string | null;
-  onBuy: (id: string, price: number) => void;
+  onBuy: (item: ShopItem) => void;
 }) {
-  const canAfford = userXp >= item.price;
+  const isTBC = item.tag === "TBC";
+  const canAfford = !isTBC && userXp >= item.price;
   const isBuying = purchasing === item.id;
+  const isLimited = item.stock !== null;
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
       <span className="text-xl w-7 text-center shrink-0">{item.icon}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-white truncate">{item.name}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-bold text-white truncate">{item.name}</p>
+          {item.tag && (
+            <span
+              className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 border flex-shrink-0"
+              style={{
+                borderColor: item.tag === "TBC" ? "rgb(161,161,170)" : item.tag === "?" ? "rgb(113,113,122)" : "rgb(96,165,250)",
+                color:       item.tag === "TBC" ? "rgb(161,161,170)" : item.tag === "?" ? "rgb(113,113,122)" : "rgb(96,165,250)",
+              }}
+            >
+              {item.tag}
+            </span>
+          )}
+        </div>
         <p className="text-[10px] text-zinc-500 mt-0.5 leading-relaxed">{item.description}</p>
       </div>
       <div className="shrink-0 flex flex-col items-end gap-1.5">
-        <span className="text-xs font-bold text-yellow-400">{item.price} XP</span>
+        <span className="text-xs font-bold text-yellow-400">
+          {isTBC ? "TBC" : `${item.price} XP`}
+        </span>
+        {isLimited && (
+          <span className="text-[9px] text-zinc-500 tracking-widest">
+            x{item.stock} left
+          </span>
+        )}
         <button
-          onClick={() => onBuy(item.id, item.price)}
+          onClick={() => onBuy(item)}
           disabled={isBuying || !canAfford}
           className="px-3 py-1 text-[10px] font-bold tracking-widest border transition-colors"
           style={{
@@ -202,7 +320,7 @@ function ShopRow({
             cursor:        !canAfford || isBuying  ? "not-allowed" : "pointer",
           }}
         >
-          {isBuying ? "..." : canAfford ? "BUY" : "N/A"}
+          {isBuying ? "..." : isTBC ? "TBC" : canAfford ? "BUY" : "N/A"}
         </button>
       </div>
     </div>

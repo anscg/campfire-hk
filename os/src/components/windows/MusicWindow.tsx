@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const YT_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || "";
 
-const BOOST_XP_COST = 75;
+const BOOST_XP_COST = 25;
 const STOP_XP_COST = 150;
 const SKIP_XP_COST = 350;
 

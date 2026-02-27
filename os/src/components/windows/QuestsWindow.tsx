@@ -5,13 +5,16 @@ import { useAuthStore } from "@/stores/authStore";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
+type QuestCategory = "main" | "side" | "hidden";
+
 interface Quest {
   _id: string;
   title: string;
   description: string;
-  xpReward: number;
+  xpReward: number | null; // null = obfuscated (hidden quest, not yet completed)
   maxCompletions: number | null;
   icon: string;
+  category: QuestCategory;
   completedByMe: boolean;
   completedAt: number | null;
   totalCompletions: number;
@@ -26,11 +29,26 @@ function formatDate(ts: number) {
   });
 }
 
+type Tab = "main" | "side" | "hidden";
+
+const TAB_LABELS: Record<Tab, string> = {
+  main: "MAIN",
+  side: "SIDE",
+  hidden: "???",
+};
+
+const TAB_DESCRIPTIONS: Record<Tab, string> = {
+  main: "Complete IRL · Visit the booth to verify",
+  side: "Competitive — not everyone can win the same prize",
+  hidden: "Secret achievements · Objectives and rewards are hidden",
+};
+
 export default function QuestsWindow() {
   const { token } = useAuthStore();
   const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("main");
   const [selected, setSelected] = useState<Quest | null>(null);
 
   const load = useCallback(async () => {
@@ -52,10 +70,15 @@ export default function QuestsWindow() {
 
   useEffect(() => { load(); }, [load]);
 
-  const completed = quests.filter((q) => q.completedByMe);
-  const pending = quests.filter((q) => !q.completedByMe);
-  const totalXPEarned = completed.reduce((sum, q) => sum + q.xpReward, 0);
-  const totalXPAvailable = pending.reduce((sum, q) => sum + q.xpReward, 0);
+  const tabQuests = quests.filter((q) => q.category === tab);
+  const completedInTab = tabQuests.filter((q) => q.completedByMe);
+  const pendingInTab = tabQuests.filter((q) => !q.completedByMe);
+
+  // Main tab stats
+  const mainQuests = quests.filter((q) => q.category === "main");
+  const mainCompleted = mainQuests.filter((q) => q.completedByMe);
+  const mainXPEarned = mainCompleted.reduce((s, q) => s + (q.xpReward ?? 0), 0);
+  const mainXPAvail = mainQuests.filter((q) => !q.completedByMe).reduce((s, q) => s + (q.xpReward ?? 0), 0);
 
   if (selected) {
     return <QuestDetail quest={selected} onBack={() => setSelected(null)} />;
@@ -63,34 +86,32 @@ export default function QuestsWindow() {
 
   return (
     <div className="flex flex-col h-full bg-zinc-900 font-mono">
-      {/* Header */}
+      {/* Header — stats for main tab only */}
       <div className="border-b border-zinc-700 px-4 py-3 flex items-center justify-between">
         <div>
           <p className="text-xs text-zinc-500 tracking-widest">QUESTS</p>
           <p className="text-white text-sm font-bold">
-            {completed.length}/{quests.length} completed
+            {mainCompleted.length}/{mainQuests.length} main completed
           </p>
         </div>
         <div className="text-right">
           <p className="text-xs text-zinc-500 tracking-widest">EARNED</p>
-          <p className="text-yellow-400 text-sm font-bold">{totalXPEarned} XP</p>
+          <p className="text-yellow-400 text-sm font-bold">{mainXPEarned} XP</p>
         </div>
       </div>
 
-      {/* XP progress bar */}
-      {quests.length > 0 && (
+      {/* Main quest progress bar */}
+      {mainQuests.length > 0 && (
         <div className="px-4 py-2 border-b border-zinc-800">
           <div className="flex justify-between text-xs text-zinc-500 mb-1">
-            <span>PROGRESS</span>
-            <span>+{totalXPAvailable} XP available</span>
+            <span>MAIN PROGRESS</span>
+            <span>+{mainXPAvail} XP available</span>
           </div>
           <div className="h-2 bg-zinc-800 border border-zinc-700">
             <div
               className="h-full bg-yellow-400"
               style={{
-                width: quests.length
-                  ? `${(completed.length / quests.length) * 100}%`
-                  : "0%",
+                width: `${(mainCompleted.length / mainQuests.length) * 100}%`,
                 transition: "width 0.4s ease",
               }}
             />
@@ -98,7 +119,42 @@ export default function QuestsWindow() {
         </div>
       )}
 
-      {/* Content */}
+      {/* Tab bar */}
+      <div className="flex border-b border-zinc-700">
+        {(["main", "side", "hidden"] as Tab[]).map((t) => {
+          const count = quests.filter((q) => q.category === t).length;
+          const done = quests.filter((q) => q.category === t && q.completedByMe).length;
+          const isActive = tab === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="flex-1 py-2 flex flex-col items-center gap-0.5 transition-colors"
+              style={{
+                background: isActive ? "rgba(234,179,8,0.1)" : "transparent",
+                borderBottom: isActive ? "2px solid rgb(234,179,8)" : "2px solid transparent",
+              }}
+            >
+              <span
+                className="text-xs tracking-widest font-bold"
+                style={{ color: isActive ? "rgb(234,179,8)" : "rgba(255,255,255,0.4)" }}
+              >
+                {TAB_LABELS[t]}
+              </span>
+              <span className="text-xs" style={{ color: isActive ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.25)" }}>
+                {done}/{count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab description */}
+      <div className="px-4 py-1.5 border-b border-zinc-800">
+        <p className="text-xs text-zinc-600">{TAB_DESCRIPTIONS[tab]}</p>
+      </div>
+
+      {/* Quest list */}
       <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center h-32 text-zinc-500 text-xs tracking-widest">
@@ -111,42 +167,35 @@ export default function QuestsWindow() {
             <button onClick={load} className="ml-3 underline">retry</button>
           </div>
         )}
-        {!loading && !error && quests.length === 0 && (
+        {!loading && !error && tabQuests.length === 0 && (
           <div className="flex items-center justify-center h-32 text-zinc-500 text-xs tracking-widest">
-            NO QUESTS YET
+            NO QUESTS
           </div>
         )}
 
-        {/* Active quests */}
-        {pending.length > 0 && (
+        {/* Pending */}
+        {pendingInTab.length > 0 && (
           <div>
             <div className="px-4 py-2 bg-zinc-800 border-b border-zinc-700">
-              <span className="text-xs text-zinc-400 tracking-widest">AVAILABLE — {pending.length}</span>
+              <span className="text-xs text-zinc-400 tracking-widest">AVAILABLE — {pendingInTab.length}</span>
             </div>
-            {pending.map((q) => (
+            {pendingInTab.map((q) => (
               <QuestRow key={q._id} quest={q} onClick={() => setSelected(q)} />
             ))}
           </div>
         )}
 
-        {/* Completed quests */}
-        {completed.length > 0 && (
+        {/* Completed */}
+        {completedInTab.length > 0 && (
           <div>
             <div className="px-4 py-2 bg-zinc-800 border-b border-zinc-700">
-              <span className="text-xs text-zinc-400 tracking-widest">COMPLETED — {completed.length}</span>
+              <span className="text-xs text-zinc-400 tracking-widest">COMPLETED — {completedInTab.length}</span>
             </div>
-            {completed.map((q) => (
+            {completedInTab.map((q) => (
               <QuestRow key={q._id} quest={q} onClick={() => setSelected(q)} />
             ))}
           </div>
         )}
-      </div>
-
-      {/* Footer hint */}
-      <div className="border-t border-zinc-800 px-4 py-2">
-        <p className="text-xs text-zinc-600 text-center">
-          Complete quests IRL · Visit the booth to verify
-        </p>
       </div>
     </div>
   );
@@ -159,15 +208,20 @@ function QuestRow({ quest, onClick }: { quest: Quest; onClick: () => void }) {
     quest.maxCompletions !== null &&
     quest.totalCompletions >= quest.maxCompletions &&
     !quest.completedByMe;
+  const isHiddenObfuscated = quest.category === "hidden" && !quest.completedByMe;
 
   return (
     <button
       onClick={onClick}
       className="w-full text-left border-b border-zinc-800 px-4 py-3 flex items-center gap-3 hover:bg-zinc-800 transition-colors"
-      style={{ cursor: "pointer" }}
     >
       {/* Icon */}
-      <span className="text-2xl w-8 text-center flex-shrink-0">{quest.icon}</span>
+      <span
+        className="text-2xl w-8 text-center flex-shrink-0"
+        style={{ filter: isHiddenObfuscated ? "grayscale(1) opacity(0.4)" : undefined }}
+      >
+        {quest.icon}
+      </span>
 
       {/* Body */}
       <div className="flex-1 min-w-0">
@@ -185,18 +239,26 @@ function QuestRow({ quest, onClick }: { quest: Quest; onClick: () => void }) {
             <span className="text-xs text-red-500 tracking-widest flex-shrink-0">FULL</span>
           )}
         </div>
-        <p className="text-xs text-zinc-500 truncate mt-0.5">{quest.description}</p>
+        <p className="text-xs truncate mt-0.5" style={{ color: isHiddenObfuscated ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)" }}>
+          {quest.description}
+        </p>
       </div>
 
       {/* XP badge */}
       <div className="flex-shrink-0 text-right">
-        <span
-          className="text-sm font-bold"
-          style={{ color: quest.completedByMe ? "rgba(234,179,8,0.4)" : "rgb(234,179,8)" }}
-        >
-          +{quest.xpReward}
-        </span>
-        <span className="text-xs text-zinc-500 ml-1">XP</span>
+        {isHiddenObfuscated ? (
+          <span className="text-sm font-bold text-zinc-600">??? XP</span>
+        ) : (
+          <>
+            <span
+              className="text-sm font-bold"
+              style={{ color: quest.completedByMe ? "rgba(234,179,8,0.4)" : "rgb(234,179,8)" }}
+            >
+              +{quest.xpReward}
+            </span>
+            <span className="text-xs text-zinc-500 ml-1">XP</span>
+          </>
+        )}
         {quest.maxCompletions !== null && (
           <p className="text-xs text-zinc-600 mt-0.5">
             {quest.totalCompletions}/{quest.maxCompletions}
@@ -214,6 +276,7 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
     quest.maxCompletions !== null &&
     quest.totalCompletions >= quest.maxCompletions &&
     !quest.completedByMe;
+  const isHiddenObfuscated = quest.category === "hidden" && !quest.completedByMe;
 
   return (
     <div className="flex flex-col h-full bg-zinc-900 font-mono">
@@ -226,16 +289,33 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           ← BACK
         </button>
         <span className="text-xs text-zinc-500 tracking-widest">QUEST DETAIL</span>
+        {quest.category === "hidden" && (
+          <span className="ml-auto text-xs tracking-widest px-1.5 py-0.5 border border-purple-800 text-purple-400">
+            SECRET
+          </span>
+        )}
+        {quest.category === "side" && (
+          <span className="ml-auto text-xs tracking-widest px-1.5 py-0.5 border border-zinc-600 text-zinc-400">
+            SIDE
+          </span>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
         {/* Header card */}
         <div className="border border-zinc-700 p-4 bg-zinc-800">
           <div className="flex items-start gap-3">
-            <span className="text-4xl">{quest.icon}</span>
+            <span
+              className="text-4xl flex-shrink-0"
+              style={{ filter: isHiddenObfuscated ? "grayscale(1) opacity(0.35)" : undefined }}
+            >
+              {quest.icon}
+            </span>
             <div className="flex-1">
               <p className="text-white font-bold text-base leading-tight">{quest.title}</p>
-              <p className="text-xs text-zinc-500 mt-1">{quest.description}</p>
+              <p className="text-xs mt-1" style={{ color: isHiddenObfuscated ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.5)" }}>
+                {quest.description}
+              </p>
             </div>
           </div>
         </div>
@@ -243,7 +323,11 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
         {/* Reward */}
         <div className="border border-zinc-700 bg-zinc-800 px-4 py-3 flex items-center justify-between">
           <span className="text-xs text-zinc-500 tracking-widest">XP REWARD</span>
-          <span className="text-2xl font-bold text-yellow-400">+{quest.xpReward} XP</span>
+          {isHiddenObfuscated ? (
+            <span className="text-2xl font-bold text-zinc-600">??? XP</span>
+          ) : (
+            <span className="text-2xl font-bold text-yellow-400">+{quest.xpReward} XP</span>
+          )}
         </div>
 
         {/* Capacity */}
@@ -268,6 +352,13 @@ function QuestDetail({ quest, onBack }: { quest: Quest; onBack: () => void }) {
           <div className="border border-red-800 bg-red-950 px-4 py-3">
             <p className="text-xs text-red-400 tracking-widest">QUEST IS FULL</p>
             <p className="text-xs text-zinc-500 mt-1">All slots have been taken.</p>
+          </div>
+        ) : isHiddenObfuscated ? (
+          <div className="border border-purple-900 bg-purple-950 px-4 py-3">
+            <p className="text-xs text-purple-400 tracking-widest mb-1">SECRET ACHIEVEMENT</p>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              The objective and reward for this achievement are hidden. Figure it out — or stumble upon it naturally.
+            </p>
           </div>
         ) : (
           <div className="border border-zinc-700 bg-zinc-800 px-4 py-3">

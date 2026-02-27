@@ -24,6 +24,8 @@ interface AdminQuest {
   maxCompletions: number | null;
   active: boolean;
   icon: string;
+  category: "main" | "side" | "hidden";
+  teaserDescription: string | null;
   createdAt: number;
   completions: QuestCompletion[];
   totalCompletions: number;
@@ -362,6 +364,9 @@ function QuestsTab({ token }: { token: string | null }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -399,15 +404,64 @@ function QuestsTab({ token }: { token: string | null }) {
     } finally { setRevoking(null); }
   };
 
+  const deleteQuest = async (q: AdminQuest) => {
+    if (!confirm(`Delete "${q.title}"? This cannot be undone. Existing completions remain for audit.`)) return;
+    setDeleting(q._id);
+    try {
+      await fetch(`${API_URL}/api/admin/quests/${q._id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      await load();
+    } finally { setDeleting(null); }
+  };
+
+  const handleSeed = async () => {
+    if (!confirm("Seed the real quest list? Quests with duplicate titles will be skipped.")) return;
+    setSeeding(true);
+    setSeedResult(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/quests/seed`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setSeedResult(`✓ ${data.created} created, ${data.skipped} skipped`);
+      await load();
+    } catch (e: any) {
+      setSeedResult(`✗ ${e.message}`);
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-32 text-zinc-500 text-xs">LOADING...</div>;
   }
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 gap-2">
         <span className="text-xs text-zinc-500 tracking-widest">{quests.length} QUESTS</span>
-        <button onClick={load} className="text-xs text-zinc-500 hover:text-white tracking-widest">↺ REFRESH</button>
+        <div className="flex gap-2 items-center">
+          {seedResult && (
+            <span
+              className="text-xs tracking-widest"
+              style={{ color: seedResult.startsWith("✓") ? "rgb(34,197,94)" : "rgb(239,68,68)" }}
+            >
+              {seedResult}
+            </span>
+          )}
+          <button
+            onClick={handleSeed}
+            disabled={seeding}
+            className="text-xs tracking-widest px-2 py-1 border border-zinc-700 text-zinc-400 hover:text-white disabled:opacity-40"
+          >
+            {seeding ? "SEEDING..." : "SEED QUESTS"}
+          </button>
+          <button onClick={load} className="text-xs text-zinc-500 hover:text-white tracking-widest">↺ REFRESH</button>
+        </div>
       </div>
       {quests.length === 0 && (
         <div className="flex items-center justify-center h-32 text-zinc-600 text-xs">NO QUESTS</div>
@@ -418,7 +472,7 @@ function QuestsTab({ token }: { token: string | null }) {
           <div className="flex items-center gap-2 px-4 py-3">
             <span className="text-lg w-6 text-center">{q.icon}</span>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-bold text-white truncate">{q.title}</p>
                 <span
                   className="text-xs tracking-widest px-1"
@@ -429,6 +483,21 @@ function QuestsTab({ token }: { token: string | null }) {
                   }}
                 >
                   {q.active ? "ON" : "OFF"}
+                </span>
+                <span
+                  className="text-xs tracking-widest px-1"
+                  style={{
+                    border: `1px solid ${
+                      q.category === "hidden" ? "rgb(147,51,234)"
+                      : q.category === "side" ? "rgb(99,102,241)"
+                      : "rgb(63,63,70)"
+                    }`,
+                    color: q.category === "hidden" ? "rgb(192,132,252)"
+                      : q.category === "side" ? "rgb(165,180,252)"
+                      : "rgb(113,113,122)",
+                  }}
+                >
+                  {q.category.toUpperCase()}
                 </span>
               </div>
               <p className="text-xs text-zinc-500">
@@ -442,6 +511,13 @@ function QuestsTab({ token }: { token: string | null }) {
                 className="text-xs tracking-widest px-2 py-1 border border-zinc-700 text-zinc-400 hover:text-white"
               >
                 {q.active ? "DISABLE" : "ENABLE"}
+              </button>
+              <button
+                onClick={() => deleteQuest(q)}
+                disabled={deleting === q._id}
+                className="text-xs tracking-widest px-2 py-1 border border-red-900 text-red-600 hover:text-red-400 disabled:opacity-40"
+              >
+                DEL
               </button>
               <button
                 onClick={() => setExpanded(expanded === q._id ? null : q._id)}

@@ -78,9 +78,26 @@ export default defineSchema({
     active: v.boolean(),
     // Emoji or icon label shown in the UI
     icon: v.optional(v.string()),
+    // "main" = everyone can get; "side" = mutually exclusive / competitive;
+    // "hidden" = secret (obfuscate objective+reward from participants)
+    category: v.optional(v.union(v.literal("main"), v.literal("side"), v.literal("hidden"))),
+    // Short teaser shown to participants for hidden quests (real description stays server-side)
+    teaserDescription: v.optional(v.string()),
     createdBy: v.id("users"),
     createdAt: v.number(),
   }),
+
+  // One row per completed quest×user (written by admin verify mutation)
+  questCompletions: defineTable({
+    questId: v.id("quests"),
+    userId: v.id("users"),
+    verifiedBy: v.id("users"),
+    note: v.optional(v.string()),
+    completedAt: v.number(),
+  })
+    .index("by_quest_user", ["questId", "userId"])
+    .index("by_quest", ["questId"])
+    .index("by_user", ["userId"]),
 
   // ── Shop Orders ───────────────────────────────────────────
   // Created when a participant purchases a hardcoded shop item.
@@ -150,20 +167,24 @@ export default defineSchema({
     .index("by_user_song", ["userId", "songId"])
     .index("by_song", ["songId"]),
 
-  // One row per user×queue addition (prevents spamming multiple songs per user)
-  // We track currently-queued song per user. Only one active queued/playing song at a time.
+  // ── Stocks ────────────────────────────────────────────────
+  // One row per ticker — current price and a rolling price history.
+  stockPrices: defineTable({
+    ticker: v.string(),              // e.g. "CAMPF"
+    price: v.number(),               // current price in XP
+    history: v.array(v.number()),    // last N prices (newest last), max 60
+    updatedAt: v.number(),
+    pressure: v.optional(v.number()), // 0–1 hold-pressure accumulator
+  }).index("by_ticker", ["ticker"]),
 
-  // One row per user×song completion (admins verify at the booth)
-  questCompletions: defineTable({
-    questId: v.id("quests"),
+  // One row per user×ticker holding
+  stockHoldings: defineTable({
     userId: v.id("users"),
-    // The admin who verified and approved this completion
-    verifiedBy: v.id("users"),
-    // Note added by admin during verification (optional)
-    note: v.optional(v.string()),
-    completedAt: v.number(),
+    ticker: v.string(),
+    shares: v.number(),              // integer shares owned
+    avgBuyPrice: v.number(),         // weighted average purchase price
   })
-    .index("by_quest", ["questId"])
     .index("by_user", ["userId"])
-    .index("by_quest_user", ["questId", "userId"]),
+    .index("by_ticker", ["ticker"])
+    .index("by_user_ticker", ["userId", "ticker"]),
 });

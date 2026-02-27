@@ -19,6 +19,7 @@ import type * as otp from "../otp.js";
 import type * as quests from "../quests.js";
 import type * as shop from "../shop.js";
 import type * as shopOrders from "../shopOrders.js";
+import type * as stocks from "../stocks.js";
 import type * as transactions from "../transactions.js";
 import type * as users from "../users.js";
 
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   quests: typeof quests;
   shop: typeof shop;
   shopOrders: typeof shopOrders;
+  stocks: typeof stocks;
   transactions: typeof transactions;
   users: typeof users;
 }>;

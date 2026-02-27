@@ -1652,6 +1652,54 @@ app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
+// ============================================================
+// Hunt / QR Code Routes
+// ============================================================
+
+// Short codes that are valid one-time-use "carry links" for participants
+// who scan a QR code on a device that isn't logged in. Each code maps to
+// a hunt ID so the secret page can redirect them to /hunt/<huntId> after
+// they log in on their own device.
+// Format: secretCode → huntId
+const HUNT_SECRET_CODES: Record<string, string> = {
+  "y0ufn": "alpha",
+  "lmafoo": "beta",
+  "n0lmao": "gamma",
+};
+
+// POST /api/hunt/:huntId — authenticated; attempts to redeem the hunt
+app.post("/api/hunt/:huntId", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const huntId = req.params.huntId as string;
+    if (!huntId || !/^[a-zA-Z0-9_-]+$/.test(huntId)) {
+      res.status(400).json({ error: "Invalid hunt ID" });
+      return;
+    }
+
+    const result = await convex.mutation(api.hunt.redeemHunt, {
+      huntId,
+      userId: req.userId as any,
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    console.error("Hunt redeem error:", error);
+    res.status(500).json({ error: error?.message || "Failed to redeem hunt" });
+  }
+});
+
+// GET /api/hunt/secret/:code — public; resolves a short code to its hunt ID
+// Used by /secret/[code] page so it can display the right hunt ID.
+app.get("/api/hunt/secret/:code", (req, res) => {
+  const { code } = req.params;
+  const huntId = HUNT_SECRET_CODES[code];
+  if (!huntId) {
+    res.status(404).json({ error: "Invalid code" });
+    return;
+  }
+  res.json({ huntId });
+});
+
 app.listen(PORT, () => {
   console.log(`[Campfire OS Server] Running on port ${PORT}`);
 });

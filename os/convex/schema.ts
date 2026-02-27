@@ -177,6 +177,21 @@ export default defineSchema({
     pressure: v.optional(v.number()), // 0–1 hold-pressure accumulator
   }).index("by_ticker", ["ticker"]),
 
+  // ── Hunt / QR Code Redemptions ───────────────────────────────
+  // One row per redemption. huntId is the path segment from /hunt/[huntId].
+  // One redemption per group (enforced by groupId uniqueness check in the mutation).
+  // The first three global redeemers get tiered XP (250 / 100 / 30).
+  huntRedemptions: defineTable({
+    huntId: v.string(),
+    userId: v.id("users"),
+    groupId: v.optional(v.string()), // Convex _id string of the group (null = no group)
+    xpAwarded: v.number(),
+    redeemedAt: v.number(),
+  })
+    .index("by_hunt", ["huntId"])
+    .index("by_hunt_user", ["huntId", "userId"])
+    .index("by_hunt_group", ["huntId", "groupId"]),
+
   // One row per user×ticker holding
   stockHoldings: defineTable({
     userId: v.id("users"),

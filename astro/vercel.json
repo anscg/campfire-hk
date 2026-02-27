@@ -1,4 +1,16 @@
 {
+  "redirects": [
+    {
+      "source": "/qr/h",
+      "destination": "https://os.campfire.hk",
+      "permanent": false
+    },
+    {
+      "source": "/hunt/:path*",
+      "destination": "https://os.campfire.hk/hunt/:path*",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",

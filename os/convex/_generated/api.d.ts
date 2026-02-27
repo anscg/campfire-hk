@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as groups from "../groups.js";
+import type * as hunt from "../hunt.js";
 import type * as music from "../music.js";
 import type * as otp from "../otp.js";
 import type * as quests from "../quests.js";
@@ -33,6 +34,7 @@ import type * as users from "../users.js";
  */
 declare const fullApi: ApiFromModules<{
   groups: typeof groups;
+  hunt: typeof hunt;
   music: typeof music;
   otp: typeof otp;
   quests: typeof quests;

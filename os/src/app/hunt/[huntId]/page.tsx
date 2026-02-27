@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -121,18 +121,15 @@ export default function HuntPage() {
               NOT LOGGED IN
             </p>
             <p className="text-orange-300/80 text-xs leading-relaxed mb-3">
-              You need to be logged in to claim XP. Open{" "}
-              <span className="text-orange-300 font-bold">os.campfire.hk</span> on a device
-              where you're already logged in, then navigate to:
+              You need to be logged in to claim XP. Open this link on the device
+              where you're already logged in:
             </p>
-            <div className="bg-black/40 border border-orange-800 px-3 py-2 text-center">
+            <div className="bg-black/40 border border-orange-800 px-3 py-2 text-center mb-3">
               <span className="text-orange-300 text-xs font-mono break-all">
                 os.campfire.hk/hunt/{huntId}
               </span>
             </div>
-            <p className="text-zinc-500 text-xs mt-3 text-center">
-              Or scan the QR code again on your own phone.
-            </p>
+            <ShareButton huntId={huntId} />
           </StatusBox>
         )}
 
@@ -209,8 +206,8 @@ export default function HuntPage() {
 
 function getStoredToken(): string | null {
   try {
-    // Zustand persists auth state to localStorage under "campfire-auth"
-    const raw = localStorage.getItem("campfire-auth");
+    // Zustand persist stores under the key defined in authStore: "campfire-os-auth"
+    const raw = localStorage.getItem("campfire-os-auth");
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed?.state?.token ?? null;
@@ -237,5 +234,63 @@ function StatusBox({
     <div className={`border px-4 py-4 ${border}`}>
       {children}
     </div>
+  );
+}
+
+// ── ShareButton ───────────────────────────────────────────────
+// Uses Web Share API (AirDrop on iOS/macOS Safari) with copy-link fallback.
+
+function ShareButton({ huntId }: { huntId: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = `https://os.campfire.hk/hunt/${huntId}`;
+
+  const canShare =
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function";
+
+  const handleShare = useCallback(async () => {
+    if (canShare) {
+      try {
+        await navigator.share({
+          title: "Campfire Hunt — claim your XP!",
+          text: "I found a hidden code at Campfire HK — open this on your logged-in device to claim XP:",
+          url,
+        });
+        return;
+      } catch {
+        // user cancelled or share failed — fall through to copy
+      }
+    }
+    // Copy fallback
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard blocked — nothing we can do
+    }
+  }, [canShare, url]);
+
+  return (
+    <button
+      onClick={handleShare}
+      className="w-full flex items-center justify-center gap-2 border border-orange-700
+        bg-orange-900/30 hover:bg-orange-900/50 text-orange-300 text-xs font-bold
+        tracking-widest py-2.5 transition-colors"
+    >
+      {canShare ? (
+        <>
+          <span>⬆</span>
+          <span>SHARE / AIRDROP LINK</span>
+        </>
+      ) : copied ? (
+        <span>COPIED!</span>
+      ) : (
+        <>
+          <span>⎘</span>
+          <span>COPY LINK</span>
+        </>
+      )}
+    </button>
   );
 }

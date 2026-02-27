@@ -130,7 +130,7 @@ export default function SecretPage() {
 
 function getStoredToken(): string | null {
   try {
-    const raw = localStorage.getItem("campfire-auth");
+    const raw = localStorage.getItem("campfire-os-auth");
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return parsed?.state?.token ?? null;

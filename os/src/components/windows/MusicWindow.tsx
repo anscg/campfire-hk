@@ -318,6 +318,16 @@ export default function MusicWindow() {
 
   return (
     <div className="flex flex-col h-full bg-zinc-900 font-mono relative">
+      {/* Player-not-open lock overlay */}
+      {!loading && !player && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-zinc-900/95 backdrop-blur-sm">
+          <span className="text-4xl">🎵</span>
+          <p className="text-zinc-300 text-sm font-bold tracking-widest">PLAYER OFFLINE</p>
+          <p className="text-zinc-500 text-xs text-center px-6 leading-relaxed">
+            The music player isn't open yet.<br />Check back when the event starts.
+          </p>
+        </div>
+      )}
       {/* Now Playing bar */}
       <NowPlayingBar
         song={nowPlaying ?? null}

@@ -75,7 +75,7 @@ function ParticipantsTab() {
       try {
         setLoading(true);
         setError(null);
-        const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3001";
+        const serverUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
         const res = await fetch(`${serverUrl}/api/leaderboard`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -167,7 +167,7 @@ function GroupsTab() {
       try {
         setLoading(true);
         setError(null);
-        const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3001";
+        const serverUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
         const res = await fetch(`${serverUrl}/api/groups`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });

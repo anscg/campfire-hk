@@ -201,7 +201,7 @@ interface IncomingRequest {
 
 export default function CampPayWindow() {
   const { user, token } = useAuthStore();
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3001";
+  const serverUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
 
   const [tab, setTab] = useState<"send" | "receive">("send");
 

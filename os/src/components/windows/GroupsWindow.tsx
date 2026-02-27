@@ -39,7 +39,7 @@ export default function GroupsWindow() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3001";
+  const serverUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
 
   const fetchMyGroup = useCallback(async () => {
     if (!token) return;

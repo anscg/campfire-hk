@@ -1636,6 +1636,68 @@ app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
 });
 
 // ============================================================
+// Market Event Routes (Admin)
+// ============================================================
+
+// State to prevent multiple simultaneous events
+let greatDepressionRunning = false;
+
+// POST /api/admin/stocks/great-depression
+// Inflates all stock prices over ~60 s, then crashes them to 1–3 XP.
+app.post("/api/admin/stocks/great-depression", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    if (greatDepressionRunning) {
+      res.status(409).json({ error: "Great Depression already in progress" });
+      return;
+    }
+    greatDepressionRunning = true;
+    res.json({ started: true });
+
+    // Run asynchronously so the response returns immediately
+    (async () => {
+      try {
+        // --- Phase 1: inflate over 60 s (30 ticks × 2 s) ---
+        // Each tick multiplies every price by a random factor 1.04–1.12 (big bull run)
+        const INFLATE_TICKS = 30;
+        const INFLATE_INTERVAL_MS = 2000;
+
+        for (let i = 0; i < INFLATE_TICKS; i++) {
+          const rows = await convex.query(api.stocks.getPrices);
+          const prices = rows.map((r: any) => ({
+            ticker: r.ticker,
+            price: r.price * (1.04 + Math.random() * 0.08),
+          }));
+          await convex.mutation(internal.stocks.forceSetPrices as any, { prices });
+          await new Promise((resolve) => setTimeout(resolve, INFLATE_INTERVAL_MS));
+        }
+
+        // --- Phase 2: crash to 1–3 XP in one tick ---
+        const rows = await convex.query(api.stocks.getPrices);
+        const crashPrices = rows.map((r: any) => ({
+          ticker: r.ticker,
+          price: 1 + Math.random() * 2, // 1–3 XP
+        }));
+        await convex.mutation(internal.stocks.forceSetPrices as any, { prices: crashPrices });
+      } finally {
+        greatDepressionRunning = false;
+      }
+    })();
+  } catch (error: any) {
+    greatDepressionRunning = false;
+    res.status(500).json({ error: error?.message || "Failed to start event" });
+  }
+});
+
+// GET /api/admin/stocks/great-depression/status
+app.get("/api/admin/stocks/great-depression/status", authMiddleware, (_req: AuthRequest, res) => {
+  res.json({ running: greatDepressionRunning });
+});
+
+// ============================================================
 // Hunt / QR Code Routes
 // ============================================================
 

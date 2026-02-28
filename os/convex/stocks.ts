@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // ── Hardcoded stock definitions (source of truth also mirrored in server) ─────
@@ -251,6 +251,33 @@ export const sellStock = mutation({
       await ctx.db.delete(holding._id);
     } else {
       await ctx.db.patch(holding._id, { shares: remaining });
+    }
+  },
+});
+
+// ── forceSetPrices ────────────────────────────────────────────────────────────
+// Admin-only: instantly set every stock to specified prices.
+// Used by server-side market-event sequences (e.g. Great Depression).
+export const forceSetPrices = internalMutation({
+  args: {
+    // Array of { ticker, price } — any tickers not listed are left unchanged.
+    prices: v.array(v.object({ ticker: v.string(), price: v.number() })),
+  },
+  handler: async (ctx, { prices }) => {
+    for (const { ticker, price } of prices) {
+      const row = await ctx.db
+        .query("stockPrices")
+        .withIndex("by_ticker", (q) => q.eq("ticker", ticker))
+        .first();
+      if (!row) continue;
+      const newPrice = Math.round(price * 100) / 100;
+      const history = [...row.history, newPrice].slice(-MAX_HISTORY);
+      await ctx.db.patch(row._id, {
+        price: newPrice,
+        history,
+        updatedAt: Date.now(),
+        pressure: 0,
+      } as any);
     }
   },
 });

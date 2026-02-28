@@ -37,7 +37,7 @@ interface SearchUser {
   xp: number;
 }
 
-type Tab = "quests" | "verify" | "create" | "xp";
+type Tab = "quests" | "verify" | "create" | "xp" | "market";
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleString("en-HK", {
@@ -74,7 +74,7 @@ export default function AdminWindow() {
     <div className="flex flex-col h-full bg-zinc-900 font-mono">
       {/* Tab bar */}
       <div className="flex border-b border-zinc-700">
-        {(["verify", "quests", "create", "xp"] as Tab[]).map((t) => (
+        {(["verify", "quests", "create", "xp", "market"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -86,7 +86,7 @@ export default function AdminWindow() {
               borderRight: "1px solid rgb(63,63,70)",
             }}
           >
-            {t === "verify" ? "VERIFY" : t === "quests" ? "QUESTS" : t === "create" ? "CREATE" : "XP"}
+            {t === "verify" ? "VERIFY" : t === "quests" ? "QUESTS" : t === "create" ? "CREATE" : t === "xp" ? "XP" : "MARKET"}
           </button>
         ))}
       </div>
@@ -97,6 +97,7 @@ export default function AdminWindow() {
         {tab === "quests" && <QuestsTab token={token} />}
         {tab === "create" && <CreateTab token={token} onCreated={() => setTab("quests")} />}
         {tab === "xp" && <XPTab token={token} />}
+        {tab === "market" && <MarketTab token={token} />}
       </div>
     </div>
   );
@@ -917,6 +918,133 @@ function XPTab({ token }: { token: string | null }) {
         {!searchQ.trim() && (
           <div className="flex items-center justify-center h-32 text-zinc-600 text-xs tracking-widest text-center px-4">
             Search for a participant to adjust their XP
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── MARKET TAB ─────────────────────────────────────────────────────────────────
+// Admin controls for market events (e.g. Great Depression)
+
+function MarketTab({ token }: { token: string | null }) {
+  const [running, setRunning] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [confirmed, setConfirmed] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Poll status every 3 s
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/admin/stocks/great-depression/status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setRunning(data.running);
+        }
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    };
+    poll();
+    const id = setInterval(poll, 3000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [token]);
+
+  const trigger = async () => {
+    setConfirmed(false);
+    setMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/stocks/great-depression`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.started) {
+        setRunning(true);
+        setMessage({ ok: true, text: "Great Depression started. Prices inflating for ~60 s then crashing." });
+      } else {
+        setMessage({ ok: false, text: data.error ?? "Failed to start event" });
+      }
+    } catch {
+      setMessage({ ok: false, text: "Network error" });
+    }
+  };
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center h-full text-zinc-500 text-xs tracking-widest">
+        LOADING...
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      <p className="text-xs text-zinc-500 tracking-widest">MARKET EVENTS</p>
+
+      {/* Great Depression card */}
+      <div className="border border-zinc-700 p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">📉</span>
+          <div>
+            <p className="text-sm font-bold text-white tracking-wide">GREAT DEPRESSION</p>
+            <p className="text-xs text-zinc-400">
+              All stocks inflate over ~1 minute, then crash to 1–3 XP in 5 seconds.
+            </p>
+          </div>
+        </div>
+
+        {running && (
+          <div className="bg-yellow-900/40 border border-yellow-600 px-3 py-2 text-xs text-yellow-400 tracking-widest animate-pulse">
+            EVENT IN PROGRESS...
+          </div>
+        )}
+
+        {message && (
+          <div
+            className={`px-3 py-2 text-xs tracking-widest border ${
+              message.ok
+                ? "bg-green-900/30 border-green-600 text-green-400"
+                : "bg-red-900/30 border-red-600 text-red-400"
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        {!running && !confirmed && (
+          <button
+            onClick={() => setConfirmed(true)}
+            className="w-full py-2 text-xs font-bold tracking-widest bg-red-700 hover:bg-red-600 text-white transition-colors"
+          >
+            TRIGGER EVENT
+          </button>
+        )}
+
+        {!running && confirmed && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-red-400 tracking-widest">
+              ARE YOU SURE? This will affect all participants' stock values.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={trigger}
+                className="flex-1 py-2 text-xs font-bold tracking-widest bg-red-700 hover:bg-red-600 text-white transition-colors"
+              >
+                CONFIRM
+              </button>
+              <button
+                onClick={() => setConfirmed(false)}
+                className="flex-1 py-2 text-xs font-bold tracking-widest bg-zinc-700 hover:bg-zinc-600 text-white transition-colors"
+              >
+                CANCEL
+              </button>
+            </div>
           </div>
         )}
       </div>

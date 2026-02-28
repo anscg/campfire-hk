@@ -365,6 +365,8 @@ function QuestsTab({ token }: { token: string | null }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [givingAll, setGivingAll] = useState<string | null>(null);
+  const [giveAllResult, setGiveAllResult] = useState<{ questId: string; msg: string } | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -434,6 +436,27 @@ function QuestsTab({ token }: { token: string | null }) {
       setSeedResult(`✗ ${e.message}`);
     } finally {
       setSeeding(false);
+    }
+  };
+
+  const giveAll = async (q: AdminQuest) => {
+    if (!confirm(`Award "${q.title}" (+${q.xpReward} XP) to ALL participants who haven't completed it yet?`)) return;
+    setGivingAll(q._id);
+    setGiveAllResult(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/quests/${q._id}/verify-all`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ note: "Mass award" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setGiveAllResult({ questId: q._id, msg: `✓ ${data.awarded} awarded, ${data.skipped} skipped` });
+      await load();
+    } catch (e: any) {
+      setGiveAllResult({ questId: q._id, msg: `✗ ${e.message}` });
+    } finally {
+      setGivingAll(null);
     }
   };
 
@@ -532,9 +555,28 @@ function QuestsTab({ token }: { token: string | null }) {
           {/* Expanded completions */}
           {expanded === q._id && (
             <div className="bg-zinc-950 border-t border-zinc-800">
-              <p className="px-4 py-2 text-xs text-zinc-500 tracking-widest border-b border-zinc-800">
-                COMPLETIONS ({q.completions.length})
-              </p>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
+                <p className="text-xs text-zinc-500 tracking-widest">
+                  COMPLETIONS ({q.completions.length})
+                </p>
+                <div className="flex items-center gap-2">
+                  {giveAllResult?.questId === q._id && (
+                    <span
+                      className="text-xs tracking-widest"
+                      style={{ color: giveAllResult.msg.startsWith("✓") ? "rgb(34,197,94)" : "rgb(239,68,68)" }}
+                    >
+                      {giveAllResult.msg}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => giveAll(q)}
+                    disabled={givingAll === q._id}
+                    className="text-xs tracking-widest px-2 py-1 border border-yellow-700 text-yellow-500 hover:text-yellow-300 disabled:opacity-40"
+                  >
+                    {givingAll === q._id ? "AWARDING..." : "GIVE ALL"}
+                  </button>
+                </div>
+              </div>
               {q.completions.length === 0 && (
                 <p className="px-4 py-3 text-xs text-zinc-600">No completions yet</p>
               )}

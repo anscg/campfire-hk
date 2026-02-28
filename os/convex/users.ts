@@ -20,6 +20,14 @@ export const getById = query({
   },
 });
 
+// List all users (admin use — no PII filtering)
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("users").collect();
+  },
+});
+
 // Create or update user on login
 export const upsertUser = internalMutation({
   args: {

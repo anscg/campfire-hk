@@ -839,6 +839,43 @@ app.post("/api/admin/quests/:id/verify", authMiddleware, async (req: AuthRequest
   }
 });
 
+// POST /api/admin/quests/:id/verify-all — admin: award quest to every user who hasn't completed it yet
+app.post("/api/admin/quests/:id/verify-all", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    const { id: questId } = req.params;
+    const { note } = req.body;
+
+    // Fetch all users
+    const allUsers = await convex.query(api.users.listAll);
+
+    let awarded = 0;
+    let skipped = 0;
+    for (const u of allUsers) {
+      try {
+        await convex.mutation(internal.quests.verify as any, {
+          questId: questId as any,
+          userId: u._id as any,
+          adminId: req.userId as any,
+          note: note || "Mass award",
+        });
+        awarded++;
+      } catch {
+        // Already completed or quest full — skip silently
+        skipped++;
+      }
+    }
+
+    res.json({ success: true, awarded, skipped });
+  } catch (error: any) {
+    console.error("Verify-all error:", error);
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
 // DELETE /api/admin/quests/:questId/completions/:userId — admin: revoke a completion
 app.delete(
   "/api/admin/quests/:questId/completions/:userId",

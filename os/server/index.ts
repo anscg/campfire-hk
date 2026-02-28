@@ -1639,16 +1639,9 @@ app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
 // Hunt / QR Code Routes
 // ============================================================
 
-// Short codes that are valid one-time-use "carry links" for participants
-// who scan a QR code on a device that isn't logged in. Each code maps to
-// a hunt ID so the secret page can redirect them to /hunt/<huntId> after
-// they log in on their own device.
-// Format: secretCode → huntId
-const HUNT_SECRET_CODES: Record<string, string> = {
-  "y0ufn": "alpha",
-  "lmafoo": "beta",
-  "n0lmao": "gamma",
-};
+// The valid hunt IDs — these are the codes stored in huntRedemptions.huntId
+// and also used directly as the :huntId path segment.
+const VALID_HUNT_IDS = new Set(["y0ufn", "lmfaoo", "n0lmao"]);
 
 // POST /api/hunt/:huntId — authenticated; attempts to redeem the hunt
 app.post("/api/hunt/:huntId", authMiddleware, async (req: AuthRequest, res) => {
@@ -1656,6 +1649,10 @@ app.post("/api/hunt/:huntId", authMiddleware, async (req: AuthRequest, res) => {
     const huntId = req.params.huntId as string;
     if (!huntId || !/^[a-zA-Z0-9_-]+$/.test(huntId)) {
       res.status(400).json({ error: "Invalid hunt ID" });
+      return;
+    }
+    if (!VALID_HUNT_IDS.has(huntId)) {
+      res.status(404).json({ error: "Hunt not found" });
       return;
     }
 
@@ -1675,12 +1672,11 @@ app.post("/api/hunt/:huntId", authMiddleware, async (req: AuthRequest, res) => {
 // Used by /secret/[code] page so it can display the right hunt ID.
 app.get("/api/hunt/secret/:code", (req, res) => {
   const { code } = req.params;
-  const huntId = HUNT_SECRET_CODES[code];
-  if (!huntId) {
+  if (!VALID_HUNT_IDS.has(code)) {
     res.status(404).json({ error: "Invalid code" });
     return;
   }
-  res.json({ huntId });
+  res.json({ huntId: code });
 });
 
 app.listen(PORT, () => {

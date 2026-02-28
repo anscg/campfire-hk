@@ -145,17 +145,18 @@ export const hongkongConfig = {
         {
           date: "Feb 28th",
           items: [
-            { time: "9:00 AM", activity: "Doors open" },
+            { time: "9:00 AM", activity: "Doors Open" },
             { time: "10:00 AM", activity: "Opening Ceremony" },
-            {
-              time: "11:00 AM",
-              activity: "Workshop: Intro to Game Development",
-            },
-            { time: "12:00 PM", activity: "Lunch" },
-            { time: "1:00 PM", activity: "Hacking begins!" },
-            { time: "4:00 PM", activity: "Workshop: Game Design Basics" },
-            { time: "6:00 PM", activity: "Dinner" },
-            { time: "7:00 PM", activity: "Project Demo 1" },
+            { time: "10:15 AM", activity: "Opening Slides + Introduction" },
+            { time: "10:30 AM", activity: "Sponsor Speech" },
+            { time: "10:40 AM", activity: "Theme Reveal + Economy + OS" },
+            { time: "11:00 AM", activity: "Event Begins" },
+            { time: "11:30 AM", activity: "Workshop 1: Godot 101" },
+            { time: "12:30 PM", activity: "Lunch" },
+            { time: "1:30 PM", activity: "Demo 1 - Concept Showcase" },
+            { time: "3:00 PM", activity: "Lolo - Music in Games" },
+            { time: "6:30 PM", activity: "Light Dinner" },
+            { time: "7:00 PM", activity: "Day 1 Ends" },
           ],
         },
         {

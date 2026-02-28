@@ -1,4 +1,5 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // XP tiers: 1st = 250, 2nd = 100, 3rd = 30, 4th+ = 0
@@ -94,6 +95,75 @@ export const redeemHunt = internalMutation({
     }
 
     return { alreadyRedeemed: false, groupBlocked: false, xpAwarded, rank };
+  },
+});
+
+// ── getAllRedemptions ──────────────────────────────────────────
+// Admin: every redemption row in the table (no huntId filter).
+export const getAllRedemptions = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("huntRedemptions").collect();
+  },
+});
+
+// ── clawbackFraudulentRedemptions ─────────────────────────────
+// Deletes every huntRedemption whose huntId is not in the valid
+// set, deducts the XP that was awarded, and records a clawback
+// transaction + xpEvent for each affected user.
+export const clawbackFraudulentRedemptions = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const VALID = new Set(["y0ufn", "lmfaoo", "n0lmao"]);
+
+    const all = await ctx.db.query("huntRedemptions").collect();
+    const fraudulent = all.filter((r) => !VALID.has(r.huntId));
+
+    // Aggregate XP to deduct per user (keep typed Id)
+    const deductMap = new Map<Id<"users">, number>();
+    for (const r of fraudulent) {
+      deductMap.set(r.userId, (deductMap.get(r.userId) ?? 0) + r.xpAwarded);
+    }
+
+    const now = Date.now();
+
+    // Deduct XP and record clawback transactions
+    for (const [userId, totalDeduct] of deductMap.entries()) {
+      if (totalDeduct === 0) continue;
+      const user = await ctx.db.get(userId);
+      if (!user) continue;
+
+      const newXP = Math.max(0, user.xp - totalDeduct);
+      const newLevel = Math.floor(newXP / 100) + 1;
+      await ctx.db.patch(userId, { xp: newXP, level: newLevel });
+
+      await ctx.db.insert("xpEvents", {
+        userId,
+        amount: -totalDeduct,
+        reason: `[Admin] Hunt exploit clawback (−${totalDeduct} XP)`,
+        createdAt: now,
+      });
+      await ctx.db.insert("transactions", {
+        userId,
+        type: "deduct",
+        amount: totalDeduct,
+        description: `[Admin] Hunt exploit clawback (−${totalDeduct} XP)`,
+        createdAt: now,
+      });
+    }
+
+    // Delete fraudulent redemption records
+    for (const r of fraudulent) {
+      await ctx.db.delete(r._id);
+    }
+
+    return {
+      deletedCount: fraudulent.length,
+      affectedUsers: deductMap.size,
+      summary: Object.fromEntries(
+        [...deductMap.entries()].map(([uid, xp]) => [uid.toString(), xp])
+      ),
+    };
   },
 });
 

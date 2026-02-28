@@ -34,7 +34,8 @@ export default defineSchema({
       v.literal("purchase"),
       v.literal("earn"),
       v.literal("refund"),
-      v.literal("send")
+      v.literal("send"),
+      v.literal("deduct")
     ),
     amount: v.number(),
     itemId: v.optional(v.id("shopItems")),

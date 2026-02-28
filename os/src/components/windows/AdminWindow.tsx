@@ -983,16 +983,24 @@ function MarketTab({ token }: { token: string | null }) {
   const [moreMessage, setMoreMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [unblocking, setUnblocking] = useState(false);
 
+  // Market open/close state
+  const [marketOpen, setMarketOpen] = useState(true);
+  const [marketMessage, setMarketMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [marketToggling, setMarketToggling] = useState(false);
+
   // Poll both statuses every 3 s
   useEffect(() => {
     let cancelled = false;
     const poll = async () => {
       try {
-        const [r1, r2] = await Promise.all([
+        const [r1, r2, r3] = await Promise.all([
           fetch(`${API_URL}/api/admin/stocks/great-depression/status`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${API_URL}/api/admin/stocks/more-depression/status`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_URL}/api/admin/stocks/market/status`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -1005,6 +1013,10 @@ function MarketTab({ token }: { token: string | null }) {
             const d2 = await r2.json();
             setMoreRunning(d2.running);
             setSellBlocked(d2.sellBlocked);
+          }
+          if (r3.ok) {
+            const d3 = await r3.json();
+            setMarketOpen(d3.open);
           }
         }
       } finally {
@@ -1074,6 +1086,29 @@ function MarketTab({ token }: { token: string | null }) {
     }
   };
 
+  const toggleMarket = async (open: boolean) => {
+    setMarketToggling(true);
+    setMarketMessage(null);
+    try {
+      const endpoint = open ? "open" : "close";
+      const res = await fetch(`${API_URL}/api/admin/stocks/market/${endpoint}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setMarketOpen(open);
+        setMarketMessage({ ok: true, text: open ? "Exchange is now OPEN." : "Exchange is now CLOSED." });
+      } else {
+        const data = await res.json();
+        setMarketMessage({ ok: false, text: data.error ?? "Failed" });
+      }
+    } catch {
+      setMarketMessage({ ok: false, text: "Network error" });
+    } finally {
+      setMarketToggling(false);
+    }
+  };
+
   if (checking) {
     return (
       <div className="flex items-center justify-center h-full text-zinc-500 text-xs tracking-widest">
@@ -1085,6 +1120,58 @@ function MarketTab({ token }: { token: string | null }) {
   return (
     <div className="flex flex-col gap-4 p-4 overflow-y-auto">
       <p className="text-xs text-zinc-500 tracking-widest">MARKET EVENTS</p>
+
+      {/* Market Hours card */}
+      <div className="border border-zinc-700 p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{marketOpen ? "🟢" : "🔴"}</span>
+          <div>
+            <p className="text-sm font-bold text-white tracking-wide">MARKET HOURS</p>
+            <p className="text-xs text-zinc-400">
+              Open/close the exchange. When closed, buy/sell are blocked and prices freeze.
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={`px-3 py-2 text-xs tracking-widest border ${
+            marketOpen
+              ? "bg-green-900/30 border-green-600 text-green-400"
+              : "bg-red-900/30 border-red-600 text-red-400"
+          }`}
+        >
+          EXCHANGE IS {marketOpen ? "OPEN" : "CLOSED"}
+        </div>
+
+        {marketMessage && (
+          <div
+            className={`px-3 py-2 text-xs tracking-widest border ${
+              marketMessage.ok
+                ? "bg-green-900/30 border-green-600 text-green-400"
+                : "bg-red-900/30 border-red-600 text-red-400"
+            }`}
+          >
+            {marketMessage.text}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => toggleMarket(false)}
+            disabled={marketToggling || !marketOpen}
+            className="flex-1 py-2 text-xs font-bold tracking-widest bg-red-700 hover:bg-red-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {marketToggling && !marketOpen ? "CLOSING..." : "CLOSE EXCHANGE"}
+          </button>
+          <button
+            onClick={() => toggleMarket(true)}
+            disabled={marketToggling || marketOpen}
+            className="flex-1 py-2 text-xs font-bold tracking-widest bg-green-700 hover:bg-green-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {marketToggling && marketOpen ? "OPENING..." : "OPEN EXCHANGE"}
+          </button>
+        </div>
+      </div>
 
       {/* Great Depression card */}
       <div className="border border-zinc-700 p-4 flex flex-col gap-3">

@@ -1521,6 +1521,7 @@ const STOCK_DEFS = [
 
   // Tick every 4 seconds
   setInterval(async () => {
+    if (!marketOpen) return; // market closed — skip tick
     try {
       // Gather total shares per ticker from Convex
       const holdings: { ticker: string; totalShares: number }[] = [];
@@ -1574,6 +1575,13 @@ app.get("/api/stocks/portfolio", authMiddleware, async (req: AuthRequest, res) =
 app.post("/api/stocks/buy", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    // Market closed
+    if (!marketOpen) {
+      res.status(503).json({ error: "MARKET_CLOSED" });
+      return;
+    }
+
     const { ticker, shares } = req.body;
     if (!ticker || !shares || shares < 1) {
       res.status(400).json({ error: "ticker and shares (>=1) required" }); return;
@@ -1629,6 +1637,12 @@ app.post("/api/stocks/buy", authMiddleware, async (req: AuthRequest, res) => {
 app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    // Market closed
+    if (!marketOpen) {
+      res.status(503).json({ error: "MARKET_CLOSED" });
+      return;
+    }
 
     // Market event: sell orders blocked
     if (sellBlocked) {
@@ -1693,6 +1707,7 @@ app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
 let greatDepressionRunning = false;
 let moreDepressionRunning = false;
 let sellBlocked = false; // when true, sell endpoint returns a fake "no buyers" error
+let marketOpen = true;   // when false, buy/sell are blocked and the tick loop is paused
 
 // POST /api/admin/stocks/great-depression
 // Inflates all stock prices over ~60 s, then crashes them to 1–3 XP.
@@ -1854,6 +1869,39 @@ app.post("/api/admin/stocks/unblock-sell", authMiddleware, async (req: AuthReque
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     sellBlocked = false;
     res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// GET /api/admin/stocks/market/status — returns whether the market is open
+app.get("/api/admin/stocks/market/status", authMiddleware, (_req: AuthRequest, res) => {
+  res.json({ open: marketOpen });
+});
+
+// POST /api/admin/stocks/market/close — close the exchange
+app.post("/api/admin/stocks/market/close", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+    marketOpen = false;
+    console.log("[Stocks] Market CLOSED by admin");
+    res.json({ success: true, open: false });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// POST /api/admin/stocks/market/open — open the exchange
+app.post("/api/admin/stocks/market/open", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+    marketOpen = true;
+    console.log("[Stocks] Market OPENED by admin");
+    res.json({ success: true, open: true });
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed" });
   }

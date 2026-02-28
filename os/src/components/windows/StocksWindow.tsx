@@ -539,7 +539,7 @@ export default function StocksWindow() {
         body: JSON.stringify({ ticker: selected.ticker, shares }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error === "MARKET_CLOSED" ? "Exchange is closed" : data.error);
       if (user && data.newXP !== undefined) setUser({ ...user, xp: data.newXP });
       await fetchHoldings();
       showMsg(true, `Bought ${shares}x ${selected.ticker} for ${data.spent} XP`);
@@ -569,6 +569,14 @@ export default function StocksWindow() {
         body: JSON.stringify({ ticker: selected.ticker, shares }),
       });
       const data = await res.json();
+
+      // MARKET_CLOSED: show immediate error, no theatrical delay
+      if (data.error === "MARKET_CLOSED") {
+        setSellConfirm(false);
+        setSellLoading(false);
+        showMsg(false, "Exchange is closed");
+        return;
+      }
 
       // NO_BUYERS: fake 10-second loading then show blocked popup
       if (res.status === 503 || data.error === "NO_BUYERS") {

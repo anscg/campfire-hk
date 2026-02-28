@@ -999,12 +999,6 @@ function MarketTab({ token }: { token: string | null }) {
           </div>
         </div>
 
-        {running && (
-          <div className="bg-yellow-900/40 border border-yellow-600 px-3 py-2 text-xs text-yellow-400 tracking-widest animate-pulse">
-            EVENT IN PROGRESS...
-          </div>
-        )}
-
         {message && (
           <div
             className={`px-3 py-2 text-xs tracking-widest border ${
@@ -1017,12 +1011,13 @@ function MarketTab({ token }: { token: string | null }) {
           </div>
         )}
 
-        {!running && !confirmed && (
+        {!confirmed && (
           <button
             onClick={() => setConfirmed(true)}
-            className="w-full py-2 text-xs font-bold tracking-widest bg-red-700 hover:bg-red-600 text-white transition-colors"
+            disabled={running}
+            className="w-full py-2 text-xs font-bold tracking-widest bg-red-700 hover:bg-red-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            TRIGGER EVENT
+            {running ? "RUNNING..." : "TRIGGER EVENT"}
           </button>
         )}
 

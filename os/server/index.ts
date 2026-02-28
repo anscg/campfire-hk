@@ -339,8 +339,8 @@ const HARDCODED_SHOP_ITEMS: Record<string, { name: string; price: number; icon: 
   "shop-banana":         { name: "Banana",                      price: 400,  icon: "🍌", maxPerUser: null },
   // Food
   "shop-sweet-potato":   { name: "Sweet Potato Stick from Muji", price: 0,  icon: "🍠", maxPerUser: null },
-  "shop-donut":          { name: "Donut",                       price: 880,  icon: "🍩", maxPerUser: null },
-  "shop-boba":           { name: "Boba",                        price: 1000, icon: "🧋", maxPerUser: null },
+  "shop-donut":          { name: "Donut",                       price: 660,  icon: "🍩", maxPerUser: null },
+  "shop-boba":           { name: "Boba",                        price: 750, icon: "🧋", maxPerUser: null },
   // Experiences
   "shop-handshake":      { name: "Handshake with Anson Chung",  price: 1700, icon: "🤝", maxPerUser: 1    },
   // Plushies / prizes

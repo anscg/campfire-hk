@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // Get transactions for a user
@@ -26,7 +26,7 @@ export const getXPEvents = query({
 });
 
 // Record a transaction (used by server routes for hardcoded-item purchases)
-export const record = mutation({
+export const record = internalMutation({
   args: {
     userId: v.id("users"),
     type: v.union(

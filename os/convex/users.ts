@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // Get user by email
@@ -21,7 +21,7 @@ export const getById = query({
 });
 
 // Create or update user on login
-export const upsertUser = mutation({
+export const upsertUser = internalMutation({
   args: {
     email: v.string(),
     // Optional: display name from the sign-up form (provided by Cockpit on first login).
@@ -56,7 +56,7 @@ export const upsertUser = mutation({
 });
 
 // Update display name
-export const updateDisplayName = mutation({
+export const updateDisplayName = internalMutation({
   args: { id: v.id("users"), displayName: v.string() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, { displayName: args.displayName });
@@ -64,7 +64,7 @@ export const updateDisplayName = mutation({
 });
 
 // Add XP to user
-export const addXP = mutation({
+export const addXP = internalMutation({
   args: {
     id: v.id("users"),
     amount: v.number(),
@@ -92,7 +92,7 @@ export const addXP = mutation({
 });
 
 // Deduct XP (for purchases)
-export const deductXP = mutation({
+export const deductXP = internalMutation({
   args: {
     id: v.id("users"),
     amount: v.number(),
@@ -128,7 +128,7 @@ export const getLeaderboard = query({
 });
 
 // Promote or demote a user to admin (callable by server-side only via secret)
-export const setAdmin = mutation({
+export const setAdmin = internalMutation({
   args: { id: v.id("users"), isAdmin: v.boolean() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, { isAdmin: args.isAdmin });
@@ -136,7 +136,7 @@ export const setAdmin = mutation({
 });
 
 // Transfer XP between two users (atomic)
-export const transferXP = mutation({
+export const transferXP = internalMutation({
   args: {
     fromId: v.id("users"),
     toId: v.id("users"),

@@ -3,7 +3,7 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import { randomBytes } from "crypto";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../convex/_generated/api";
+import { api, internal } from "../convex/_generated/api";
 import { Resend } from "resend";
 import dotenv from "dotenv";
 
@@ -14,7 +14,10 @@ const PORT = process.env.SERVER_PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || "campfire-os-dev-secret-change-me";
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "";
 
-const convex = new ConvexHttpClient(CONVEX_URL);
+const CONVEX_ADMIN_KEY = process.env.CONVEX_SELF_HOSTED_ADMIN_KEY || process.env.CONVEX_ADMIN_KEY || "";
+
+const convex = new ConvexHttpClient(CONVEX_URL, { skipConvexDeploymentUrlCheck: true });
+if (CONVEX_ADMIN_KEY) (convex as any).setAdminAuth(CONVEX_ADMIN_KEY);
 
 const resend = new Resend(process.env.RESEND_API_KEY || "");
 const RESEND_FROM = process.env.RESEND_FROM || "Campfire OS <noreply@campfire.hk>";
@@ -271,7 +274,7 @@ app.post("/api/auth/verify-otp", async (req, res) => {
     }
 
     // Create/update user — pass Cockpit display name for new accounts
-    const userId = await convex.mutation(api.users.upsertUser, {
+    const userId = await convex.mutation(internal.users.upsertUser as any, {
       email: normalised,
       displayName,
     });
@@ -315,31 +318,6 @@ app.get("/api/user/me", authMiddleware, async (req: AuthRequest, res) => {
 // ============================================================
 // XP Routes
 // ============================================================
-
-app.post("/api/xp/award", authMiddleware, async (req: AuthRequest, res) => {
-  try {
-    const { amount, reason } = req.body;
-    if (!amount || !reason) {
-      res.status(400).json({ error: "Amount and reason required" });
-      return;
-    }
-    if (!req.userId) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
-    const result = await convex.mutation(api.users.addXP, {
-      id: req.userId as any, // Convex ID type
-      amount,
-      reason,
-    });
-
-    res.json(result);
-  } catch (error) {
-    console.error("XP award error:", error);
-    res.status(500).json({ error: "Failed to award XP" });
-  }
-});
 
 // ============================================================
 // Shop Routes
@@ -419,14 +397,14 @@ app.post(
       }
 
       // Deduct XP
-      const result = await convex.mutation(api.users.deductXP, {
+      const result = await convex.mutation(internal.users.deductXP as any, {
         id: req.userId as any,
         amount: item.price,
         reason: `Purchased ${item.name}`,
       });
 
       // Record transaction
-      await convex.mutation(api.transactions.record, {
+      await convex.mutation(internal.transactions.record as any, {
         userId: req.userId as any,
         type: "purchase",
         amount: item.price,
@@ -434,7 +412,7 @@ app.post(
       });
 
       // Create pending order for admin fulfilment
-      await convex.mutation(api.shopOrders.create, {
+      await convex.mutation(internal.shopOrders.create as any, {
         userId: req.userId as any,
         itemId: itemId,
         itemName: item.name,
@@ -518,7 +496,7 @@ app.post("/api/groups/create", authMiddleware, async (req: AuthRequest, res) => 
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const result = await convex.mutation(api.groups.create, {
+    const result = await convex.mutation(internal.groups.create as any, {
       name: name.trim(),
       userId: req.userId as any,
     });
@@ -541,7 +519,7 @@ app.post("/api/groups/join", authMiddleware, async (req: AuthRequest, res) => {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const result = await convex.mutation(api.groups.join, {
+    const result = await convex.mutation(internal.groups.join as any, {
       inviteCode: inviteCode.trim(),
       userId: req.userId as any,
     });
@@ -559,7 +537,7 @@ app.post("/api/groups/leave", authMiddleware, async (req: AuthRequest, res) => {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    await convex.mutation(api.groups.leave, {
+    await convex.mutation(internal.groups.leave as any, {
       userId: req.userId as any,
     });
     res.json({ success: true });
@@ -620,7 +598,7 @@ app.post("/api/pay/send", authMiddleware, async (req: AuthRequest, res) => {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const result = await convex.mutation(api.users.transferXP, {
+    const result = await convex.mutation(internal.users.transferXP as any, {
       fromId: req.userId as any,
       toId: toUserId as any,
       amount,
@@ -717,7 +695,7 @@ app.post("/api/pay/qr/:token/pay", authMiddleware, async (req: AuthRequest, res)
       return;
     }
 
-    const result = await convex.mutation(api.users.transferXP, {
+    const result = await convex.mutation(internal.users.transferXP as any, {
       fromId: req.userId as any,
       toId: entry.requesterId as any,
       amount: entry.amount,
@@ -790,7 +768,7 @@ app.post("/api/admin/quests", authMiddleware, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "title, description, xpReward required" });
       return;
     }
-    const result = await convex.mutation(api.quests.create, {
+    const result = await convex.mutation(internal.quests.create as any, {
       title,
       description,
       xpReward: Number(xpReward),
@@ -815,10 +793,10 @@ app.patch("/api/admin/quests/:id", authMiddleware, async (req: AuthRequest, res)
     const { active, title, description, xpReward, maxCompletions, icon } = req.body;
 
     if (active !== undefined) {
-      await convex.mutation(api.quests.setActive, { questId: id as any, active: !!active });
+      await convex.mutation(internal.quests.setActive as any, { questId: id as any, active: !!active });
     }
     if (title !== undefined || description !== undefined || xpReward !== undefined || maxCompletions !== undefined || icon !== undefined) {
-      await convex.mutation(api.quests.update, {
+      await convex.mutation(internal.quests.update as any, {
         questId: id as any,
         title: title ?? undefined,
         description: description ?? undefined,
@@ -843,7 +821,7 @@ app.post("/api/admin/quests/:id/verify", authMiddleware, async (req: AuthRequest
     const { id: questId } = req.params;
     const { userId, note } = req.body;
     if (!userId) { res.status(400).json({ error: "userId required" }); return; }
-    const result = await convex.mutation(api.quests.verify, {
+    const result = await convex.mutation(internal.quests.verify as any, {
       questId: questId as any,
       userId: userId as any,
       adminId: req.userId as any,
@@ -866,7 +844,7 @@ app.delete(
       const user = await convex.query(api.users.getById, { id: req.userId as any });
       if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
       const { questId, userId } = req.params;
-      await convex.mutation(api.quests.revokeCompletion, {
+      await convex.mutation(internal.quests.revokeCompletion as any, {
         questId: questId as any,
         userId: userId as any,
         adminId: req.userId as any,
@@ -886,7 +864,7 @@ app.delete("/api/admin/quests/:id", authMiddleware, async (req: AuthRequest, res
     const user = await convex.query(api.users.getById, { id: req.userId as any });
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { id } = req.params;
-    await convex.mutation(api.quests.deleteQuest, { questId: id as any });
+    await convex.mutation(internal.quests.deleteQuest as any, { questId: id as any });
     res.json({ success: true });
   } catch (error: any) {
     console.error("Delete quest error:", error);
@@ -1017,7 +995,7 @@ app.post("/api/admin/quests/seed", authMiddleware, async (req: AuthRequest, res)
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const user = await convex.query(api.users.getById, { id: req.userId as any });
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
-    const result = await convex.mutation(api.quests.seedQuests, {
+    const result = await convex.mutation(internal.quests.seedQuests as any, {
       quests: SEED_QUESTS,
       createdBy: req.userId as any,
     });
@@ -1075,12 +1053,12 @@ app.post("/api/admin/xp", authMiddleware, async (req: AuthRequest, res) => {
 
     let result: { xp: number; level: number };
     if (amount > 0) {
-      result = await convex.mutation(api.users.addXP, {
+      result = await convex.mutation(internal.users.addXP as any, {
         id: userId as any,
         amount,
         reason: `[Admin] ${reason.trim()}`,
       });
-      await convex.mutation(api.transactions.record, {
+      await convex.mutation(internal.transactions.record as any, {
         userId: userId as any,
         type: "earn",
         amount,
@@ -1093,12 +1071,12 @@ app.post("/api/admin/xp", authMiddleware, async (req: AuthRequest, res) => {
         res.status(400).json({ error: "User has 0 XP, nothing to deduct" });
         return;
       }
-      result = await convex.mutation(api.users.deductXP, {
+      result = await convex.mutation(internal.users.deductXP as any, {
         id: userId as any,
         amount: deduct,
         reason: `[Admin] ${reason.trim()}`,
       });
-      await convex.mutation(api.transactions.record, {
+      await convex.mutation(internal.transactions.record as any, {
         userId: userId as any,
         type: "purchase",
         amount: deduct,
@@ -1142,7 +1120,7 @@ app.post("/api/admin/orders/:id/fulfil", authMiddleware, async (req: AuthRequest
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { id } = req.params;
     const { note } = req.body;
-    await convex.mutation(api.shopOrders.fulfil, {
+    await convex.mutation(internal.shopOrders.fulfil as any, {
       orderId: id as any,
       adminId: req.userId as any,
       note: note || undefined,
@@ -1162,7 +1140,7 @@ app.post("/api/admin/orders/:id/cancel", authMiddleware, async (req: AuthRequest
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { id } = req.params;
     const { note } = req.body;
-    await convex.mutation(api.shopOrders.cancel, {
+    await convex.mutation(internal.shopOrders.cancel as any, {
       orderId: id as any,
       adminId: req.userId as any,
       note: note || undefined,
@@ -1187,7 +1165,7 @@ app.post("/api/admin/set-admin", async (req, res) => {
     if (!email) { res.status(400).json({ error: "email required" }); return; }
     const user = await convex.query(api.users.getByEmail, { email });
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
-    await convex.mutation(api.users.setAdmin, { id: user._id, isAdmin: !!isAdmin });
+    await convex.mutation(internal.users.setAdmin as any, { id: user._id, isAdmin: !!isAdmin });
     res.json({ success: true, userId: user._id, isAdmin: !!isAdmin });
   } catch (error: any) {
     console.error("Set admin error:", error);
@@ -1271,12 +1249,12 @@ app.post("/api/music/add", authMiddleware, async (req: AuthRequest, res) => {
       durationSeconds: durationSeconds || 0,
     });
     if (!user.isAdmin) {
-      await convex.mutation(api.users.deductXP, {
+      await convex.mutation(internal.users.deductXP as any, {
         id: req.userId as any,
         amount: ADD_XP_COST,
         reason: "Added a song to the music queue",
       });
-      await convex.mutation(api.transactions.record, {
+      await convex.mutation(internal.transactions.record as any, {
         userId: req.userId as any,
         type: "purchase",
         amount: ADD_XP_COST,
@@ -1302,12 +1280,12 @@ app.post("/api/music/boost/:id", authMiddleware, async (req: AuthRequest, res) =
       userId: req.userId as any,
       songId: req.params.id as any,
     });
-    const result = await convex.mutation(api.users.deductXP, {
+    const result = await convex.mutation(internal.users.deductXP as any, {
       id: req.userId as any,
       amount: BOOST_XP_COST,
       reason: "Boosted a song in the music queue",
     });
-    await convex.mutation(api.transactions.record, {
+    await convex.mutation(internal.transactions.record as any, {
       userId: req.userId as any,
       type: "purchase",
       amount: BOOST_XP_COST,
@@ -1349,12 +1327,12 @@ app.post("/api/music/participant-stop", authMiddleware, async (req: AuthRequest,
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (user.xp < STOP_XP_COST) { res.status(400).json({ error: `Insufficient XP (need ${STOP_XP_COST})` }); return; }
     await convex.mutation(api.music.pause);
-    const result = await convex.mutation(api.users.deductXP, {
+    const result = await convex.mutation(internal.users.deductXP as any, {
       id: req.userId as any,
       amount: STOP_XP_COST,
       reason: "Stopped the music",
     });
-    await convex.mutation(api.transactions.record, {
+    await convex.mutation(internal.transactions.record as any, {
       userId: req.userId as any,
       type: "purchase",
       amount: STOP_XP_COST,
@@ -1376,12 +1354,12 @@ app.post("/api/music/participant-skip", authMiddleware, async (req: AuthRequest,
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (user.xp < SKIP_XP_COST) { res.status(400).json({ error: `Insufficient XP (need ${SKIP_XP_COST})` }); return; }
     await convex.mutation(api.music.skip);
-    const result = await convex.mutation(api.users.deductXP, {
+    const result = await convex.mutation(internal.users.deductXP as any, {
       id: req.userId as any,
       amount: SKIP_XP_COST,
       reason: "Skipped a song in the music queue",
     });
-    await convex.mutation(api.transactions.record, {
+    await convex.mutation(internal.transactions.record as any, {
       userId: req.userId as any,
       type: "purchase",
       amount: SKIP_XP_COST,
@@ -1575,7 +1553,7 @@ app.post("/api/stocks/buy", authMiddleware, async (req: AuthRequest, res) => {
     }
 
     // Deduct XP
-    await convex.mutation(api.users.deductXP, {
+    await convex.mutation(internal.users.deductXP as any, {
       id: req.userId as any,
       amount: totalCost,
       reason: `Bought ${shares}x ${ticker} @ ${price} XP/share`,
@@ -1590,7 +1568,7 @@ app.post("/api/stocks/buy", authMiddleware, async (req: AuthRequest, res) => {
     });
 
     // Log transaction for Receipts
-    await convex.mutation(api.transactions.record, {
+    await convex.mutation(internal.transactions.record as any, {
       userId: req.userId as any,
       type: "purchase",
       amount: totalCost,
@@ -1630,14 +1608,14 @@ app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
     });
 
     // Award XP
-    await convex.mutation(api.users.addXP, {
+    await convex.mutation(internal.users.addXP as any, {
       id: req.userId as any,
       amount: totalGain,
       reason: `Sold ${shares}x ${ticker} @ ${price} XP/share`,
     });
 
     // Log transaction for Receipts
-    await convex.mutation(api.transactions.record, {
+    await convex.mutation(internal.transactions.record as any, {
       userId: req.userId as any,
       type: "earn",
       amount: totalGain,
@@ -1676,7 +1654,7 @@ app.post("/api/hunt/:huntId", authMiddleware, async (req: AuthRequest, res) => {
       return;
     }
 
-    const result = await convex.mutation(api.hunt.redeemHunt, {
+    const result = await convex.mutation(internal.hunt.redeemHunt as any, {
       huntId,
       userId: req.userId as any,
     });

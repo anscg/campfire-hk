@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // ── Participant queries ────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ export const listAll = query({
 // ── Admin mutations ────────────────────────────────────────────────────────────
 
 // Create a new quest
-export const create = mutation({
+export const create = internalMutation({
   args: {
     title: v.string(),
     description: v.string(),
@@ -132,7 +132,7 @@ export const create = mutation({
 });
 
 // Toggle quest active/inactive
-export const setActive = mutation({
+export const setActive = internalMutation({
   args: { questId: v.id("quests"), active: v.boolean() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.questId, { active: args.active });
@@ -140,7 +140,7 @@ export const setActive = mutation({
 });
 
 // Edit a quest's fields
-export const update = mutation({
+export const update = internalMutation({
   args: {
     questId: v.id("quests"),
     title: v.optional(v.string()),
@@ -165,7 +165,7 @@ export const update = mutation({
 });
 
 // Admin verifies a participant completed a quest → awards XP
-export const verify = mutation({
+export const verify = internalMutation({
   args: {
     questId: v.id("quests"),
     userId: v.id("users"),
@@ -237,7 +237,7 @@ export const verify = mutation({
 });
 
 // Admin revokes a completion (undo)
-export const revokeCompletion = mutation({
+export const revokeCompletion = internalMutation({
   args: {
     questId: v.id("quests"),
     userId: v.id("users"),
@@ -281,7 +281,7 @@ export const revokeCompletion = mutation({
 });
 
 // Delete a quest (admin only — removes the quest record; completions remain for XP audit)
-export const deleteQuest = mutation({
+export const deleteQuest = internalMutation({
   args: { questId: v.id("quests") },
   handler: async (ctx, args) => {
     const quest = await ctx.db.get(args.questId);
@@ -292,7 +292,7 @@ export const deleteQuest = mutation({
 });
 
 // Seed quests from a provided list (skips quests whose title already exists)
-export const seedQuests = mutation({
+export const seedQuests = internalMutation({
   args: {
     quests: v.array(
       v.object({

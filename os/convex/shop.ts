@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // List all available shop items
@@ -19,7 +19,7 @@ export const get = query({
 });
 
 // Purchase an item
-export const purchase = mutation({
+export const purchase = internalMutation({
   args: {
     userId: v.id("users"),
     itemId: v.id("shopItems"),
@@ -83,7 +83,7 @@ export const getUserPurchases = query({
 });
 
 // Seed shop items (admin use)
-export const seed = mutation({
+export const seed = internalMutation({
   handler: async (ctx) => {
     const items = [
       {

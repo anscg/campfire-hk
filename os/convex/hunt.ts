@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // XP tiers: 1st = 250, 2nd = 100, 3rd = 30, 4th+ = 0
@@ -8,7 +8,7 @@ const XP_TIERS = [250, 100, 30];
 // Called by the server when an authenticated user hits /api/hunt/:huntId.
 // Returns { xpAwarded, rank, alreadyRedeemed, groupBlocked } so the
 // server can relay the outcome to the client.
-export const redeemHunt = mutation({
+export const redeemHunt = internalMutation({
   args: {
     huntId: v.string(),
     userId: v.id("users"),

@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 // Count non-cancelled orders for a given user + itemId (for per-user purchase limits)
@@ -18,7 +18,7 @@ export const countByUserAndItem = query({
 });
 
 
-export const create = mutation({
+export const create = internalMutation({
   args: {
     userId: v.id("users"),
     itemId: v.string(),
@@ -63,7 +63,7 @@ export const listAll = query({
 });
 
 // Fulfil an order
-export const fulfil = mutation({
+export const fulfil = internalMutation({
   args: {
     orderId: v.id("shopOrders"),
     adminId: v.id("users"),
@@ -84,7 +84,7 @@ export const fulfil = mutation({
 });
 
 // Cancel an order and refund XP
-export const cancel = mutation({
+export const cancel = internalMutation({
   args: {
     orderId: v.id("shopOrders"),
     adminId: v.id("users"),

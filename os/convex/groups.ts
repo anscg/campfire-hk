@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 const MAX_MEMBERS = 3;
@@ -69,7 +69,7 @@ export const getByUser = query({
 });
 
 // Create a new group
-export const create = mutation({
+export const create = internalMutation({
   args: {
     name: v.string(),
     userId: v.id("users"),
@@ -106,7 +106,7 @@ export const create = mutation({
 });
 
 // Join an existing group via invite code
-export const join = mutation({
+export const join = internalMutation({
   args: {
     inviteCode: v.string(),
     userId: v.id("users"),
@@ -134,7 +134,7 @@ export const join = mutation({
 });
 
 // Leave a group
-export const leave = mutation({
+export const leave = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const groups = await ctx.db.query("groups").collect();

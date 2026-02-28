@@ -400,7 +400,50 @@ function SellConfirmModal({
   );
 }
 
+// ── No Buyers Modal ───────────────────────────────────────────────────────────
 
+function NoBuyersModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="absolute inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.75)" }}
+    >
+      <div
+        className="bg-zinc-900 border border-zinc-600 font-mono text-white"
+        style={{ width: 280 }}
+      >
+        {/* Title bar */}
+        <div className="flex items-center justify-between border-b border-zinc-700 px-3 py-2 bg-zinc-800">
+          <span className="text-xs tracking-widest text-red-400">SELL FAILED</span>
+          <button
+            onClick={onClose}
+            className="text-zinc-500 hover:text-white text-xs w-5 h-5 flex items-center justify-center"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-4 py-5 flex flex-col gap-4 items-center text-center">
+          <span className="text-3xl">📉</span>
+          <p className="text-sm font-bold text-white tracking-wide leading-snug">
+            No one is buying this stock at this moment
+          </p>
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            The market has no active buyers. Try again later.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full h-9 text-xs font-bold tracking-widest border border-zinc-600 text-zinc-300 hover:text-white hover:border-zinc-400"
+            style={{ background: "transparent" }}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function PctChange({ history }: { history: number[] }) {
   if (history.length < 2) return null;
@@ -434,6 +477,7 @@ export default function StocksWindow() {
   const [busy, setBusy] = useState(false);
   const [sellConfirm, setSellConfirm] = useState(false);
   const [sellLoading, setSellLoading] = useState(false);
+  const [noBuyers, setNoBuyers] = useState(false);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showMsg = (ok: boolean, text: string) => {
@@ -525,6 +569,16 @@ export default function StocksWindow() {
         body: JSON.stringify({ ticker: selected.ticker, shares }),
       });
       const data = await res.json();
+
+      // NO_BUYERS: fake 10-second loading then show blocked popup
+      if (res.status === 503 || data.error === "NO_BUYERS") {
+        await new Promise((r) => setTimeout(r, 10000));
+        setSellConfirm(false);
+        setSellLoading(false);
+        setNoBuyers(true);
+        return;
+      }
+
       if (!res.ok) throw new Error(data.error);
       if (user && data.newXP !== undefined) setUser({ ...user, xp: data.newXP });
       await fetchHoldings();
@@ -562,6 +616,11 @@ export default function StocksWindow() {
           onCancel={() => { if (!sellLoading) setSellConfirm(false); }}
           loading={sellLoading}
         />
+      )}
+
+      {/* No buyers modal */}
+      {noBuyers && (
+        <NoBuyersModal onClose={() => setNoBuyers(false)} />
       )}
 
       {/* Header */}

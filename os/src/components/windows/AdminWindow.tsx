@@ -976,17 +976,36 @@ function MarketTab({ token }: { token: string | null }) {
   const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Poll status every 3 s
+  // More Depression state
+  const [moreRunning, setMoreRunning] = useState(false);
+  const [sellBlocked, setSellBlocked] = useState(false);
+  const [moreConfirmed, setMoreConfirmed] = useState(false);
+  const [moreMessage, setMoreMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [unblocking, setUnblocking] = useState(false);
+
+  // Poll both statuses every 3 s
   useEffect(() => {
     let cancelled = false;
     const poll = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/admin/stocks/great-depression/status`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!cancelled && res.ok) {
-          const data = await res.json();
-          setRunning(data.running);
+        const [r1, r2] = await Promise.all([
+          fetch(`${API_URL}/api/admin/stocks/great-depression/status`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_URL}/api/admin/stocks/more-depression/status`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        if (!cancelled) {
+          if (r1.ok) {
+            const d1 = await r1.json();
+            setRunning(d1.running);
+          }
+          if (r2.ok) {
+            const d2 = await r2.json();
+            setMoreRunning(d2.running);
+            setSellBlocked(d2.sellBlocked);
+          }
         }
       } finally {
         if (!cancelled) setChecking(false);
@@ -1017,6 +1036,44 @@ function MarketTab({ token }: { token: string | null }) {
     }
   };
 
+  const triggerMore = async () => {
+    setMoreConfirmed(false);
+    setMoreMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/stocks/more-depression`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.started) {
+        setMoreRunning(true);
+        setMoreMessage({ ok: true, text: "More Depression started. 5-phase sequence underway." });
+      } else {
+        setMoreMessage({ ok: false, text: data.error ?? "Failed to start event" });
+      }
+    } catch {
+      setMoreMessage({ ok: false, text: "Network error" });
+    }
+  };
+
+  const unblockSell = async () => {
+    setUnblocking(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/stocks/unblock-sell`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setSellBlocked(false);
+        setMoreMessage({ ok: true, text: "Sell orders unblocked." });
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setUnblocking(false);
+    }
+  };
+
   if (checking) {
     return (
       <div className="flex items-center justify-center h-full text-zinc-500 text-xs tracking-widest">
@@ -1026,7 +1083,7 @@ function MarketTab({ token }: { token: string | null }) {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 overflow-y-auto">
       <p className="text-xs text-zinc-500 tracking-widest">MARKET EVENTS</p>
 
       {/* Great Depression card */}
@@ -1083,6 +1140,80 @@ function MarketTab({ token }: { token: string | null }) {
               </button>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* More Depression card */}
+      <div className="border border-zinc-700 p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">📉📉</span>
+          <div>
+            <p className="text-sm font-bold text-white tracking-wide">MORE DEPRESSION</p>
+            <p className="text-xs text-zinc-400">
+              Phase 1: inflate 10 min · Phase 2: crash 2 min · Phase 3: rise 50% ~1 min · Phase 4: drop 30% ~30 s · Phase 5: sell orders blocked.
+            </p>
+          </div>
+        </div>
+
+        {sellBlocked && (
+          <div className="px-3 py-2 text-xs tracking-widest border bg-yellow-900/30 border-yellow-600 text-yellow-400">
+            SELL ORDERS ARE BLOCKED
+          </div>
+        )}
+
+        {moreMessage && (
+          <div
+            className={`px-3 py-2 text-xs tracking-widest border ${
+              moreMessage.ok
+                ? "bg-green-900/30 border-green-600 text-green-400"
+                : "bg-red-900/30 border-red-600 text-red-400"
+            }`}
+          >
+            {moreMessage.text}
+          </div>
+        )}
+
+        {!moreConfirmed && (
+          <button
+            onClick={() => setMoreConfirmed(true)}
+            disabled={moreRunning}
+            className="w-full py-2 text-xs font-bold tracking-widest bg-red-700 hover:bg-red-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {moreRunning ? "RUNNING..." : "TRIGGER EVENT"}
+          </button>
+        )}
+
+        {!moreRunning && moreConfirmed && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-red-400 tracking-widest">
+              ARE YOU SURE? This is a 5-phase sequence with sell blocking.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={triggerMore}
+                className="flex-1 py-2 text-xs font-bold tracking-widest bg-red-700 hover:bg-red-600 text-white transition-colors"
+              >
+                CONFIRM
+              </button>
+              <button
+                onClick={() => setMoreConfirmed(false)}
+                className="flex-1 py-2 text-xs font-bold tracking-widest bg-zinc-700 hover:bg-zinc-600 text-white transition-colors"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        )}
+
+        {sellBlocked && (
+          <button
+            onClick={unblockSell}
+            disabled={unblocking}
+            className="w-full py-2 text-xs font-bold tracking-widest border border-yellow-600 text-yellow-400 hover:text-yellow-200 hover:border-yellow-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: "transparent" }}
+          >
+            {unblocking ? "UNBLOCKING..." : "UNBLOCK SELLS"}
+          </button>
         )}
       </div>
     </div>

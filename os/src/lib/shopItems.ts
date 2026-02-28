@@ -20,6 +20,8 @@ export interface AuctionItem {
   name: string;
   description: string;
   icon: string;
+  /** URL of item image for auction display. null = show icon only. */
+  imageUrl: string | null;
 }
 
 export const SHOP_ITEMS: ShopItem[] = [
@@ -252,47 +254,55 @@ export const AUCTION_ITEMS: AuctionItem[] = [
     name: "Steam Gift Card",
     description: "A Steam gift card — bid to win.",
     icon: "🎮",
+    imageUrl: null,
   },
   {
     id: "auction-kepler-scarf",
     name: "Kepler Interactive Scarf",
     description: "Exclusive scarf from Kepler Interactive.",
     icon: "🧣",
+    imageUrl: null,
   },
   {
     id: "auction-exp33-cards",
     name: "Expedition 33 Character Cards",
     description: "2 sets of Expedition 33 character cards.",
     icon: "🃏",
+    imageUrl: null,
   },
   {
     id: "auction-exp33-journal",
     name: "Expedition 33 Journal",
     description: "2 Expedition 33 journals.",
     icon: "📔",
+    imageUrl: null,
   },
   {
     id: "auction-exp33-disc",
     name: "Expedition 33 Special Disc Case",
     description: "2 special disc cases from Expedition 33.",
     icon: "💿",
+    imageUrl: null,
   },
   {
     id: "auction-exp33-ps5",
     name: "Expedition 33 PS5 Game",
     description: "1 copy of Expedition 33 on PS5.",
     icon: "🎮",
+    imageUrl: null,
   },
   {
     id: "auction-sifu-ps5",
     name: "Sifu PS5 Game",
     description: "1 copy of Sifu on PS5.",
     icon: "🥋",
+    imageUrl: null,
   },
   {
     id: "auction-exp33-tote",
     name: "Expedition 33 Esquie Tote Bag",
     description: "Exclusive Esquie tote bag from Expedition 33.",
     icon: "👜",
+    imageUrl: null,
   },
 ];

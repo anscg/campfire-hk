@@ -1908,6 +1908,225 @@ app.post("/api/admin/stocks/market/open", authMiddleware, async (req: AuthReques
 });
 
 // ============================================================
+// Auction Routes
+// ============================================================
+
+interface AuctionBid {
+  userId: string;
+  displayName: string;
+  amount: number;
+  placedAt: number;
+}
+
+interface AuctionState {
+  active: boolean;
+  itemId: string | null;
+  itemName: string | null;
+  itemDescription: string | null;
+  itemIcon: string | null;
+  itemImageUrl: string | null;
+  startingBid: number;
+  bids: AuctionBid[];
+  winnerId: string | null;
+  winnerName: string | null;
+  winnerAmount: number | null;
+}
+
+let auctionState: AuctionState = {
+  active: false,
+  itemId: null,
+  itemName: null,
+  itemDescription: null,
+  itemIcon: null,
+  itemImageUrl: null,
+  startingBid: 100,
+  bids: [],
+  winnerId: null,
+  winnerName: null,
+  winnerAmount: null,
+};
+
+function getTopBid(state: AuctionState): AuctionBid | null {
+  if (state.bids.length === 0) return null;
+  return state.bids.reduce((top, b) => (b.amount > top.amount ? b : top));
+}
+
+// GET /api/auction/state — public (authenticated users can poll)
+app.get("/api/auction/state", authMiddleware, (_req: AuthRequest, res) => {
+  const top = getTopBid(auctionState);
+  res.json({
+    active: auctionState.active,
+    itemId: auctionState.itemId,
+    itemName: auctionState.itemName,
+    itemDescription: auctionState.itemDescription,
+    itemIcon: auctionState.itemIcon,
+    itemImageUrl: auctionState.itemImageUrl,
+    startingBid: auctionState.startingBid,
+    currentBid: top?.amount ?? null,
+    currentBidder: top?.displayName ?? null,
+    currentBidderId: top?.userId ?? null,
+    // last 10 bids for display, newest first
+    recentBids: [...auctionState.bids]
+      .sort((a, b) => b.placedAt - a.placedAt)
+      .slice(0, 10)
+      .map((b) => ({ displayName: b.displayName, amount: b.amount, placedAt: b.placedAt })),
+    winnerId: auctionState.winnerId,
+    winnerName: auctionState.winnerName,
+    winnerAmount: auctionState.winnerAmount,
+  });
+});
+
+// GET /api/auction/state/public — no auth required (for display page)
+app.get("/api/auction/state/public", (_req, res) => {
+  const top = getTopBid(auctionState);
+  res.json({
+    active: auctionState.active,
+    itemId: auctionState.itemId,
+    itemName: auctionState.itemName,
+    itemDescription: auctionState.itemDescription,
+    itemIcon: auctionState.itemIcon,
+    itemImageUrl: auctionState.itemImageUrl,
+    startingBid: auctionState.startingBid,
+    currentBid: top?.amount ?? null,
+    currentBidder: top?.displayName ?? null,
+    recentBids: [...auctionState.bids]
+      .sort((a, b) => b.placedAt - a.placedAt)
+      .slice(0, 10)
+      .map((b) => ({ displayName: b.displayName, amount: b.amount, placedAt: b.placedAt })),
+    winnerId: auctionState.winnerId,
+    winnerName: auctionState.winnerName,
+    winnerAmount: auctionState.winnerAmount,
+  });
+});
+
+// POST /api/auction/bid — place a bid (+100, +200, or +300 above current)
+app.post("/api/auction/bid", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!auctionState.active) { res.status(409).json({ error: "No active auction" }); return; }
+
+    const { increment } = req.body as { increment: number };
+    if (![100, 200, 300].includes(increment)) {
+      res.status(400).json({ error: "Increment must be 100, 200, or 300" });
+      return;
+    }
+
+    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const top = getTopBid(auctionState);
+    const base = top?.amount ?? auctionState.startingBid - increment; // so base+increment = startingBid if no bids
+    const newAmount = (top ? top.amount : auctionState.startingBid - increment) + increment;
+    const finalAmount = top ? top.amount + increment : auctionState.startingBid;
+
+    // Can't outbid yourself
+    if (top?.userId === req.userId) {
+      res.status(409).json({ error: "You are already the top bidder" });
+      return;
+    }
+
+    if (user.xp < finalAmount) {
+      res.status(400).json({ error: "Insufficient XP" });
+      return;
+    }
+
+    auctionState.bids.push({
+      userId: req.userId,
+      displayName: user.displayName,
+      amount: finalAmount,
+      placedAt: Date.now(),
+    });
+
+    const newTop = getTopBid(auctionState)!;
+    res.json({ success: true, yourBid: finalAmount, currentBid: newTop.amount, currentBidder: newTop.displayName });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// POST /api/admin/auction/start — start auction for an item
+app.post("/api/admin/auction/start", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    const { itemId, itemName, itemDescription, itemIcon, itemImageUrl, startingBid } = req.body;
+    if (!itemId || !itemName) { res.status(400).json({ error: "itemId and itemName required" }); return; }
+
+    auctionState = {
+      active: true,
+      itemId,
+      itemName,
+      itemDescription: itemDescription ?? null,
+      itemIcon: itemIcon ?? null,
+      itemImageUrl: itemImageUrl ?? null,
+      startingBid: startingBid ?? 100,
+      bids: [],
+      winnerId: null,
+      winnerName: null,
+      winnerAmount: null,
+    };
+    console.log(`[Auction] Started: ${itemName}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// POST /api/admin/auction/close — close bidding and declare winner (deduct XP)
+app.post("/api/admin/auction/close", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    if (!auctionState.active) { res.status(409).json({ error: "No active auction" }); return; }
+
+    const top = getTopBid(auctionState);
+    auctionState.active = false;
+
+    if (top) {
+      auctionState.winnerId = top.userId;
+      auctionState.winnerName = top.displayName;
+      auctionState.winnerAmount = top.amount;
+
+      // Deduct XP from winner
+      await convex.mutation(internal.users.deductXP as any, {
+        id: top.userId as any,
+        amount: top.amount,
+        reason: `Auction win: ${auctionState.itemName}`,
+      });
+      console.log(`[Auction] Closed. Winner: ${top.displayName} at ${top.amount} XP`);
+      res.json({ success: true, winner: top.displayName, amount: top.amount });
+    } else {
+      console.log(`[Auction] Closed. No bids.`);
+      res.json({ success: true, winner: null, amount: null });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// POST /api/admin/auction/cancel — cancel without deducting XP
+app.post("/api/admin/auction/cancel", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    auctionState.active = false;
+    auctionState.winnerId = null;
+    auctionState.winnerName = null;
+    auctionState.winnerAmount = null;
+    console.log("[Auction] Cancelled by admin");
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// ============================================================
 // Hunt / QR Code Routes
 // ============================================================
 

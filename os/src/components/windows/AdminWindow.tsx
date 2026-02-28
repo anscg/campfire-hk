@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import { AUCTION_ITEMS } from "@/lib/shopItems";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -37,7 +38,7 @@ interface SearchUser {
   xp: number;
 }
 
-type Tab = "quests" | "verify" | "create" | "xp" | "market";
+type Tab = "quests" | "verify" | "create" | "xp" | "market" | "auction";
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleString("en-HK", {
@@ -74,7 +75,7 @@ export default function AdminWindow() {
     <div className="flex flex-col h-full bg-zinc-900 font-mono">
       {/* Tab bar */}
       <div className="flex border-b border-zinc-700">
-        {(["verify", "quests", "create", "xp", "market"] as Tab[]).map((t) => (
+        {(["verify", "quests", "create", "xp", "market", "auction"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -86,7 +87,7 @@ export default function AdminWindow() {
               borderRight: "1px solid rgb(63,63,70)",
             }}
           >
-            {t === "verify" ? "VERIFY" : t === "quests" ? "QUESTS" : t === "create" ? "CREATE" : t === "xp" ? "XP" : "MARKET"}
+            {t === "verify" ? "VERIFY" : t === "quests" ? "QUESTS" : t === "create" ? "CREATE" : t === "xp" ? "XP" : t === "market" ? "MARKET" : "AUCTION"}
           </button>
         ))}
       </div>
@@ -98,6 +99,7 @@ export default function AdminWindow() {
         {tab === "create" && <CreateTab token={token} onCreated={() => setTab("quests")} />}
         {tab === "xp" && <XPTab token={token} />}
         {tab === "market" && <MarketTab token={token} />}
+        {tab === "auction" && <AuctionTab token={token} />}
       </div>
     </div>
   );
@@ -1303,6 +1305,230 @@ function MarketTab({ token }: { token: string | null }) {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── AUCTION TAB ────────────────────────────────────────────────────────────────
+// Admin controls: start / close / cancel auction items
+
+interface AuctionAdminState {
+  active: boolean;
+  itemId: string | null;
+  itemName: string | null;
+  itemDescription: string | null;
+  itemIcon: string | null;
+  startingBid: number;
+  currentBid: number | null;
+  currentBidder: string | null;
+  recentBids: { displayName: string; amount: number; placedAt: number }[];
+  winnerId: string | null;
+  winnerName: string | null;
+  winnerAmount: number | null;
+}
+
+function AuctionTab({ token }: { token: string | null }) {
+  const [auctionState, setAuctionState] = useState<AuctionAdminState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [acting, setActing] = useState(false);
+
+  // Per-item starting bid inputs
+  const [startingBids, setStartingBids] = useState<Record<string, string>>({});
+
+  const poll = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/auction/state`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setAuctionState(await res.json());
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    poll();
+    const id = setInterval(poll, 2000);
+    return () => { clearInterval(id); };
+  }, [poll]);
+
+  const startAuction = async (itemId: string, itemName: string, itemDescription: string, itemIcon: string, itemImageUrl: string | null) => {
+    const startingBid = Number(startingBids[itemId] ?? "100");
+    if (!startingBid || startingBid < 1) {
+      setMessage({ ok: false, text: "Starting bid must be at least 1 XP" });
+      return;
+    }
+    setActing(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/auction/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ itemId, itemName, itemDescription, itemIcon, itemImageUrl, startingBid }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setMessage({ ok: true, text: `Auction started: ${itemName}` });
+      await poll();
+    } catch (e: any) {
+      setMessage({ ok: false, text: e.message });
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const closeAuction = async () => {
+    setActing(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/auction/close`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setMessage({ ok: true, text: data.message ?? "Auction closed" });
+      await poll();
+    } catch (e: any) {
+      setMessage({ ok: false, text: e.message });
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const cancelAuction = async () => {
+    if (!confirm("Cancel auction? No XP will be deducted.")) return;
+    setActing(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/auction/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setMessage({ ok: true, text: "Auction cancelled" });
+      await poll();
+    } catch (e: any) {
+      setMessage({ ok: false, text: e.message });
+    } finally {
+      setActing(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-32 text-zinc-500 text-xs">LOADING...</div>;
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto">
+      {/* Message banner */}
+      {message && (
+        <div
+          className={`mx-4 mt-3 border px-3 py-2 text-xs ${
+            message.ok
+              ? "border-green-700 bg-green-950 text-green-400"
+              : "border-red-700 bg-red-950 text-red-400"
+          }`}
+        >
+          {message.ok ? "✓ " : "✗ "}{message.text}
+        </div>
+      )}
+
+      {/* Active auction status */}
+      {auctionState?.active && (
+        <div className="mx-4 mt-3 border border-yellow-600 bg-yellow-950/40 p-3 flex flex-col gap-2">
+          <p className="text-xs text-yellow-400 tracking-widest font-bold">AUCTION LIVE</p>
+          <p className="text-sm text-white font-bold">{auctionState.itemIcon} {auctionState.itemName}</p>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-zinc-400">
+              Current bid: <span className="text-yellow-300 font-bold">{auctionState.currentBid ?? auctionState.startingBid} XP</span>
+            </span>
+            {auctionState.currentBidder && (
+              <span className="text-zinc-500">{auctionState.currentBidder}</span>
+            )}
+          </div>
+          <p className="text-xs text-zinc-500">{auctionState.recentBids.length} bid{auctionState.recentBids.length !== 1 ? "s" : ""} placed</p>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={closeAuction}
+              disabled={acting}
+              className="flex-1 py-2 text-xs font-bold tracking-widest border border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-black transition-colors disabled:opacity-40"
+            >
+              {acting ? "..." : "CLOSE (DEDUCT XP)"}
+            </button>
+            <button
+              onClick={cancelAuction}
+              disabled={acting}
+              className="flex-1 py-2 text-xs font-bold tracking-widest border border-zinc-600 text-zinc-400 hover:border-red-600 hover:text-red-400 transition-colors disabled:opacity-40"
+            >
+              CANCEL
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Winner result */}
+      {auctionState && !auctionState.active && auctionState.winnerId && (
+        <div className="mx-4 mt-3 border border-green-700 bg-green-950/30 p-3">
+          <p className="text-xs text-green-400 tracking-widest font-bold mb-1">LAST WINNER</p>
+          <p className="text-sm text-white">{auctionState.itemName}</p>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {auctionState.winnerName} — {auctionState.winnerAmount} XP deducted
+          </p>
+        </div>
+      )}
+
+      {/* Item list */}
+      <p className="px-4 pt-4 pb-2 text-xs text-zinc-500 tracking-widest border-b border-zinc-800">
+        AUCTION ITEMS
+      </p>
+      {AUCTION_ITEMS.map((item) => {
+        const isActive = auctionState?.active && auctionState.itemId === item.id;
+        return (
+          <div key={item.id} className="border-b border-zinc-800 px-4 py-3 flex flex-col gap-2">
+            <div className="flex items-start gap-2">
+              <span className="text-xl w-6 text-center flex-shrink-0">{item.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white">{item.name}</p>
+                <p className="text-xs text-zinc-500 truncate">{item.description}</p>
+              </div>
+              {isActive && (
+                <span className="text-xs text-yellow-400 border border-yellow-600 px-1 tracking-widest flex-shrink-0">
+                  LIVE
+                </span>
+              )}
+            </div>
+
+            {!auctionState?.active && (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="number"
+                  value={startingBids[item.id] ?? "100"}
+                  onChange={(e) =>
+                    setStartingBids((prev) => ({ ...prev, [item.id]: e.target.value }))
+                  }
+                  min={1}
+                  placeholder="Starting bid"
+                  className="w-24 bg-zinc-800 border border-zinc-700 px-2 py-1 text-xs text-white outline-none"
+                />
+                <span className="text-xs text-zinc-500">XP start</span>
+                <button
+                  onClick={() =>
+                    startAuction(item.id, item.name, item.description, item.icon, item.imageUrl)
+                  }
+                  disabled={acting}
+                  className="ml-auto px-3 py-1 text-xs font-bold tracking-widest border border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-black transition-colors disabled:opacity-40"
+                >
+                  START
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

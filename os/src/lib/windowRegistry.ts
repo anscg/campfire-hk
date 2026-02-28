@@ -229,6 +229,17 @@ export const WINDOW_CONFIGS: Record<string, WindowConfig> = {
     closable: true,
     maximizable: true,
   },
+  auction: {
+    id: "auction",
+    title: "Auction",
+    icon: "🔨",
+    component: "AuctionWindow",
+    defaultSize: { width: 400, height: 520 },
+    minSize: { width: 320, height: 420 },
+    resizable: true,
+    closable: true,
+    maximizable: true,
+  },
 };
 
 // ============================================================
@@ -252,6 +263,7 @@ export const DESKTOP_ICONS = [
   { id: "music", label: "Music", icon: "🎵", windowConfig: WINDOW_CONFIGS.music },
   { id: "stocks", label: "Stocks", icon: "📈", windowConfig: WINDOW_CONFIGS.stocks },
   { id: "receipts", label: "Receipts", icon: "🧾", windowConfig: WINDOW_CONFIGS.receipts },
+  { id: "auction", label: "Auction", icon: "🔨", windowConfig: WINDOW_CONFIGS.auction },
   { id: "settings", label: "Settings", icon: "⚙️", windowConfig: WINDOW_CONFIGS.settings },
 ];
 
@@ -277,4 +289,5 @@ export function registerBuiltinWindows() {
   registerWindow("ShopcampfyWindow", () => import("@/components/windows/ShopcampfyWindow"));
   registerWindow("MusicWindow", () => import("@/components/windows/MusicWindow"));
   registerWindow("StocksWindow", () => import("@/components/windows/StocksWindow"));
+  registerWindow("AuctionWindow", () => import("@/components/windows/AuctionWindow"));
 }

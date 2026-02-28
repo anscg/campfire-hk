@@ -141,6 +141,17 @@ export const WINDOW_CONFIGS: Record<string, WindowConfig> = {
     closable: true,
     maximizable: true,
   },
+  lunch: {
+    id: "lunch",
+    title: "Lunch",
+    icon: "🍕",
+    component: "LunchWindow",
+    defaultSize: { width: 440, height: 520 },
+    minSize: { width: 340, height: 380 },
+    resizable: true,
+    closable: true,
+    maximizable: true,
+  },
   camppay: {
     id: "camppay",
     title: "CampPay",
@@ -233,6 +244,7 @@ export const DESKTOP_ICONS = [
   { id: "leaderboard", label: "Leaderboard", icon: "🏆", windowConfig: WINDOW_CONFIGS.leaderboard },
   { id: "groups", label: "Groups", icon: "👥", windowConfig: WINDOW_CONFIGS.groups },
   { id: "schedule", label: "Schedule", icon: "📅", windowConfig: WINDOW_CONFIGS.schedule },
+  { id: "lunch", label: "Lunch", icon: "🍕", windowConfig: WINDOW_CONFIGS.lunch },
   { id: "camppay", label: "CampPay", icon: "💸", windowConfig: WINDOW_CONFIGS.camppay },
   { id: "quests", label: "Quests", icon: "📋", windowConfig: WINDOW_CONFIGS.quests },
   { id: "admin", label: "Admin", icon: "🛡️", windowConfig: WINDOW_CONFIGS.admin, adminOnly: true },
@@ -257,6 +269,7 @@ export function registerBuiltinWindows() {
   registerWindow("LeaderboardWindow", () => import("@/components/windows/LeaderboardWindow"));
   registerWindow("GroupsWindow", () => import("@/components/windows/GroupsWindow"));
   registerWindow("ScheduleWindow", () => import("@/components/windows/ScheduleWindow"));
+  registerWindow("LunchWindow", () => import("@/components/windows/LunchWindow"));
   registerWindow("CampPayWindow", () => import("@/components/windows/CampPayWindow"));
   registerWindow("QuestsWindow", () => import("@/components/windows/QuestsWindow"));
   registerWindow("AdminWindow", () => import("@/components/windows/AdminWindow"));

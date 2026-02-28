@@ -168,15 +168,6 @@ export default function LunchWindow() {
 
       {/* Menu list */}
       <div className="flex-1 overflow-auto">
-        {/* Provider row */}
-        <div
-          className="flex items-center px-4 border-b"
-          style={{ height: "28px", borderColor: "rgb(39, 39, 42)", background: "rgb(24, 24, 27)" }}
-        >
-          <span className="text-[10px] text-zinc-500 tracking-widest">PROVIDER</span>
-          <span className="ml-3 text-[10px] text-zinc-400 font-bold">{menu.provider}</span>
-        </div>
-
         {menu.sections.map((section) => (
           <div key={section.title}>
             {/* Section header */}

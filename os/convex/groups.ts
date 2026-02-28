@@ -1,7 +1,7 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-const MAX_MEMBERS = 3;
+const MAX_MEMBERS = 4;
 
 // Generate a random 6-character alphanumeric invite code
 function generateInviteCode(): string {

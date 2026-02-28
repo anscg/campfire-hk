@@ -1629,6 +1629,19 @@ app.post("/api/stocks/buy", authMiddleware, async (req: AuthRequest, res) => {
 app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    // Market event: sell orders blocked
+    if (sellBlocked) {
+      res.status(503).json({ error: "NO_BUYERS" });
+      return;
+    }
+
+    // 1/10 random chance of no buyers
+    if (Math.random() < 0.1) {
+      res.status(503).json({ error: "NO_BUYERS" });
+      return;
+    }
+
     const { ticker, shares } = req.body;
     if (!ticker || !shares || shares < 1) {
       res.status(400).json({ error: "ticker and shares (>=1) required" }); return;
@@ -1678,6 +1691,8 @@ app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
 
 // State to prevent multiple simultaneous events
 let greatDepressionRunning = false;
+let moreDepressionRunning = false;
+let sellBlocked = false; // when true, sell endpoint returns a fake "no buyers" error
 
 // POST /api/admin/stocks/great-depression
 // Inflates all stock prices over ~60 s, then crashes them to 1–3 XP.
@@ -1732,6 +1747,116 @@ app.post("/api/admin/stocks/great-depression", authMiddleware, async (req: AuthR
 // GET /api/admin/stocks/great-depression/status
 app.get("/api/admin/stocks/great-depression/status", authMiddleware, (_req: AuthRequest, res) => {
   res.json({ running: greatDepressionRunning });
+});
+
+// POST /api/admin/stocks/more-depression
+// Phase 1: gradual inflate over 10 min
+// Phase 2: crash over 2 min
+// Phase 3: recover 50% over ~1 min
+// Phase 4: drop 30% more over ~30 s
+// Phase 5: sell orders blocked for the remainder of the event
+app.post("/api/admin/stocks/more-depression", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    if (moreDepressionRunning) {
+      res.status(409).json({ error: "More Depression already in progress" });
+      return;
+    }
+    moreDepressionRunning = true;
+    res.json({ started: true });
+
+    (async () => {
+      try {
+        const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+        // ── Phase 1: inflate over 10 minutes (120 ticks × 5 s) ──────────────
+        // Each tick: +1–3% per tick
+        for (let i = 0; i < 120; i++) {
+          const rows = await convex.query(api.stocks.getPrices);
+          const prices = rows.map((r: any) => ({
+            ticker: r.ticker,
+            price: r.price * (1.01 + Math.random() * 0.02),
+          }));
+          await convex.mutation(internal.stocks.forceSetPrices as any, { prices });
+          await delay(5000);
+        }
+
+        // ── Phase 2: crash over 2 minutes (24 ticks × 5 s) ──────────────────
+        // Each tick: −6–12% per tick — dramatic slide
+        for (let i = 0; i < 24; i++) {
+          const rows = await convex.query(api.stocks.getPrices);
+          const prices = rows.map((r: any) => ({
+            ticker: r.ticker,
+            price: r.price * (0.88 + Math.random() * 0.06),
+          }));
+          await convex.mutation(internal.stocks.forceSetPrices as any, { prices });
+          await delay(5000);
+        }
+
+        // ── Phase 3: recover 50% over ~1 min (12 ticks × 5 s) ──────────────
+        // Snapshot crash floor, then linearly nudge up toward floor × 1.5
+        const snapRows = await convex.query(api.stocks.getPrices);
+        const crashFloor = new Map(snapRows.map((r: any) => [r.ticker, r.price]));
+
+        for (let i = 1; i <= 12; i++) {
+          const rows = await convex.query(api.stocks.getPrices);
+          const prices = rows.map((r: any) => {
+            const floor = crashFloor.get(r.ticker) ?? r.price;
+            const target = floor * 1.5;
+            // lerp toward target with some noise
+            const progress = i / 12;
+            return {
+              ticker: r.ticker,
+              price: r.price + (target - r.price) * progress * (0.85 + Math.random() * 0.3),
+            };
+          });
+          await convex.mutation(internal.stocks.forceSetPrices as any, { prices });
+          await delay(5000);
+        }
+
+        // ── Phase 4: drop 30% more over ~30 s (6 ticks × 5 s) ──────────────
+        for (let i = 0; i < 6; i++) {
+          const rows = await convex.query(api.stocks.getPrices);
+          const prices = rows.map((r: any) => ({
+            ticker: r.ticker,
+            price: r.price * (0.88 + Math.random() * 0.06),
+          }));
+          await convex.mutation(internal.stocks.forceSetPrices as any, { prices });
+          await delay(5000);
+        }
+
+        // ── Phase 5: block sells ─────────────────────────────────────────────
+        sellBlocked = true;
+
+      } finally {
+        moreDepressionRunning = false;
+      }
+    })();
+  } catch (error: any) {
+    moreDepressionRunning = false;
+    res.status(500).json({ error: error?.message || "Failed to start event" });
+  }
+});
+
+// GET /api/admin/stocks/more-depression/status
+app.get("/api/admin/stocks/more-depression/status", authMiddleware, (_req: AuthRequest, res) => {
+  res.json({ running: moreDepressionRunning, sellBlocked });
+});
+
+// POST /api/admin/stocks/unblock-sell — re-enable sells after more-depression
+app.post("/api/admin/stocks/unblock-sell", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+    sellBlocked = false;
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
 });
 
 // ============================================================

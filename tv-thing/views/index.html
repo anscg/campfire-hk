@@ -88,6 +88,7 @@
       const socket = io();
 
       const picker = new EmojiMart.Picker({
+        categories: ["frequent", "people", "nature", "foods", "activity", "places", "objects", "symbols"],
         onEmojiSelect({ native: emoji }) {
           socket.emit("emoji", emoji);
         },

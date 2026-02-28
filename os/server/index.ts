@@ -36,7 +36,12 @@ interface CockpitParticipant {
   checkinCompleted: boolean;
 }
 
-// In-memory cache — refreshed at most once every 5 minutes
+// Hardcoded allowlist — emails that bypass the Cockpit API check
+const HARDCODED_ALLOWLIST = new Set([
+  "elizabethkung2027@cdnis.edu.hk",
+]);
+
+
 let participantCache: Map<string, CockpitParticipant> | null = null;
 let participantCacheAt = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -207,7 +212,7 @@ app.post("/api/auth/request-otp", async (req, res) => {
     // ── Allowlist check ──────────────────────────────────────────────────────
     if (COCKPIT_API_KEY) {
       const participants = await getParticipants();
-      if (!participants.has(normalised)) {
+      if (!participants.has(normalised) && !HARDCODED_ALLOWLIST.has(normalised)) {
       res.status(403).json({
           error: "This email isn't on the Campfire Hong Kong participant list. Make sure you're using the email you signed up with.",
           code: "not_registered",

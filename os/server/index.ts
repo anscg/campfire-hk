@@ -1781,6 +1781,7 @@ app.post("/api/admin/stocks/more-depression", authMiddleware, async (req: AuthRe
       return;
     }
     moreDepressionRunning = true;
+    sellBlocked = true;
     res.json({ started: true });
 
     (async () => {
@@ -1843,8 +1844,7 @@ app.post("/api/admin/stocks/more-depression", authMiddleware, async (req: AuthRe
           await delay(5000);
         }
 
-        // ── Phase 5: block sells ─────────────────────────────────────────────
-        sellBlocked = true;
+        // ── Phase 5: sell orders remain blocked (already set at start) ────────
 
       } finally {
         moreDepressionRunning = false;

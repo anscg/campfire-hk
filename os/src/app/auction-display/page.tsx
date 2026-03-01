@@ -56,9 +56,11 @@ const GOING_PHASE_CONFIG = {
   twice: { label: "GOING TWICE", color: "rgb(249,115,22)", bg: "rgba(249,115,22,0.12)" },
 };
 
-const BID_SFX_URL  = "https://cdn.hackclub.com/019ca521-a10c-7397-af31-7d39bdd661c8/bid_audio.mp4";
-const SOLD_SFX_URL = "https://cdn.hackclub.com/019ca521-a276-744c-ac45-7cae7041babd/sold_audio.mp4";
-const BGM_URL      = "https://cdn.hackclub.com/019ca521-baea-78bd-9f8c-6668cc5891e8/broken_brass_-_the_hitchhiker__official_video__-_broken_brass_audio.mp4";
+// Audio files are proxied through our own route handler to avoid CORS issues
+// caused by cdn.hackclub.com → user-cdn.hackclub-assets.com redirects.
+const BID_SFX_URL  = "/api/auction/audio/bid";
+const SOLD_SFX_URL = "/api/auction/audio/sold";
+const BGM_URL      = "/api/auction/audio/bgm";
 
 // ── Main display page ─────────────────────────────────────────────────────────
 

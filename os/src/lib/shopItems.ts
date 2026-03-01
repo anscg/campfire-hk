@@ -13,6 +13,8 @@ export interface ShopItem {
   stock: number | null;
   /** Tag shown alongside price (e.g. "Ship", "TBC"). null = none. */
   tag: string | null;
+  /** When true, item is greyed out and cannot be purchased. */
+  soldOut?: boolean;
 }
 
 export interface AuctionItem {
@@ -75,8 +77,9 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 400,
     category: "Food",
     icon: "🍌",
-    stock: null,
+    stock: 0,
     tag: null,
+    soldOut: true,
   },
 
   // ── Food ─────────────────────────────────────────────────────────────────────
@@ -161,8 +164,9 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 2000,
     category: "Prize",
     icon: "🦈",
-    stock: 2,
+    stock: 0,
     tag: null,
+    soldOut: true,
   },
   {
     id: "shop-ikea-bee",
@@ -211,8 +215,9 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 3400,
     category: "Prize",
     icon: "🦈",
-    stock: 2,
+    stock: 0,
     tag: null,
+    soldOut: true,
   },
   {
     id: "shop-large-octopus",
@@ -221,8 +226,9 @@ export const SHOP_ITEMS: ShopItem[] = [
     price: 3600,
     category: "Prize",
     icon: "🐙",
-    stock: 1,
+    stock: 0,
     tag: null,
+    soldOut: true,
   },
 
   // ── Perks ─────────────────────────────────────────────────────────────────────
@@ -250,10 +256,17 @@ export const SHOP_ITEMS: ShopItem[] = [
 
 export const AUCTION_ITEMS: AuctionItem[] = [
   {
-    id: "auction-steam",
-    name: "Steam Gift Card",
-    description: "A Steam gift card — bid to win.",
-    icon: "🎮",
+    id: "auction-balatro",
+    name: "Balatro",
+    description: "1 copy of Balatro — the roguelike poker game.",
+    icon: "🃏",
+    imageUrl: null,
+  },
+  {
+    id: "auction-stardew-valley",
+    name: "Stardew Valley",
+    description: "1 copy of Stardew Valley — the beloved farming RPG.",
+    icon: "🌾",
     imageUrl: null,
   },
   {
@@ -303,6 +316,41 @@ export const AUCTION_ITEMS: AuctionItem[] = [
     name: "Expedition 33 Esquie Tote Bag",
     description: "Exclusive Esquie tote bag from Expedition 33.",
     icon: "👜",
+    imageUrl: null,
+  },
+  {
+    id: "auction-blahaj-big",
+    name: "Big BLÅHAJ",
+    description: "1 big IKEA shark plushie.",
+    icon: "🦈",
+    imageUrl: null,
+  },
+  {
+    id: "auction-blahaj-small",
+    name: "Small BLÅHAJ",
+    description: "1 small IKEA shark plushie.",
+    icon: "🦈",
+    imageUrl: null,
+  },
+  {
+    id: "auction-raw-bananas",
+    name: "Raw Bananas",
+    description: "A bunch of raw bananas.",
+    icon: "🍌",
+    imageUrl: null,
+  },
+  {
+    id: "auction-jane-street-tshirts",
+    name: "Box of Jane Street T-Shirts",
+    description: "A box of 40 Jane Street t-shirts.",
+    icon: "👕",
+    imageUrl: null,
+  },
+  {
+    id: "auction-pit-of-ice-cream",
+    name: "Pit of Ice Cream",
+    description: "A whole pit of ice cream.",
+    icon: "🍦",
     imageUrl: null,
   },
 ];

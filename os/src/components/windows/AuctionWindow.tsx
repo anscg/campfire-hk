@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -25,6 +25,8 @@ interface AuctionPublicState {
   currentBidder: string | null;
   currentBidderId: string | null;
   recentBids: RecentBid[];
+  goingPhase: null | "once" | "twice" | "sold";
+  goingPhaseAt: number | null;
   winnerId: string | null;
   winnerName: string | null;
   winnerAmount: number | null;
@@ -38,32 +40,38 @@ export default function AuctionWindow() {
   const [loading, setLoading] = useState(true);
   const [bidding, setBidding] = useState(false);
   const [bidResult, setBidResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const esRef = useRef<EventSource | null>(null);
 
   const userId = (user as any)?._id ?? null;
   const userXP: number = (user as any)?.xp ?? 0;
 
-  const poll = useCallback(async () => {
+  // Connect SSE — reconnects whenever token changes
+  useEffect(() => {
     if (!token) return;
-    try {
-      const res = await fetch(`${API_URL}/api/auction/state`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setState(data);
-      }
-    } finally {
-      setLoading(false);
-    }
+    const url = `${API_URL}/api/auction/events?token=${encodeURIComponent(token)}`;
+    const connect = () => {
+      const es = new EventSource(url);
+      esRef.current = es;
+      es.onmessage = (e) => {
+        try {
+          setState(JSON.parse(e.data));
+          setLoading(false);
+        } catch { /* ignore */ }
+      };
+      es.onerror = () => {
+        es.close();
+        // Reconnect after 2s on error
+        setTimeout(connect, 2000);
+      };
+    };
+    connect();
+    return () => {
+      esRef.current?.close();
+      esRef.current = null;
+    };
   }, [token]);
 
-  useEffect(() => {
-    poll();
-    const id = setInterval(poll, 2000);
-    return () => clearInterval(id);
-  }, [poll]);
-
-  const placeBid = async (increment: 100 | 200 | 300) => {
+  const placeBid = async (increment: 50 | 100 | 150) => {
     if (!token) return;
     setBidding(true);
     setBidResult(null);
@@ -80,8 +88,8 @@ export default function AuctionWindow() {
       if (!res.ok) {
         setBidResult({ ok: false, msg: data.error ?? "Bid failed" });
       } else {
-        setBidResult({ ok: true, msg: `Bid placed: ${data.newBid} XP` });
-        await poll();
+        setBidResult({ ok: true, msg: `Bid placed: ${data.yourBid} XP` });
+        // SSE will push the updated state automatically — no manual poll needed
       }
     } catch {
       setBidResult({ ok: false, msg: "Network error" });
@@ -139,12 +147,16 @@ export default function AuctionWindow() {
   // ── Active auction ──
   const currentBid = state.currentBid ?? state.startingBid;
   const isTopBidder = state.currentBidderId === userId;
-  const myBidAmount = state.recentBids.find((b) => {
-    // We can't match by userId from recentBids (public), but we know if we're top bidder
-    return false;
-  });
 
   const canAfford = (increment: number) => userXP >= currentBid + increment;
+
+  const goingPhase = state.goingPhase;
+  const goingConfig = goingPhase
+    ? { once: { label: "GOING ONCE — BID NOW!", color: "rgb(234,179,8)", bg: "rgba(234,179,8,0.1)", border: "rgb(234,179,8)" },
+        twice: { label: "GOING TWICE — LAST CHANCE!", color: "rgb(249,115,22)", bg: "rgba(249,115,22,0.1)", border: "rgb(249,115,22)" },
+        sold:  { label: "SOLD!", color: "rgb(239,68,68)", bg: "rgba(239,68,68,0.1)", border: "rgb(239,68,68)" },
+      }[goingPhase]
+    : null;
 
   return (
     <div className="flex flex-col h-full bg-zinc-900 font-mono">
@@ -160,6 +172,16 @@ export default function AuctionWindow() {
           <p className="text-yellow-400 font-bold text-sm">{userXP}</p>
         </div>
       </div>
+
+      {/* Going-once banner */}
+      {goingConfig && (
+        <div
+          className="px-4 py-2 text-xs font-bold tracking-widest text-center border-b"
+          style={{ background: goingConfig.bg, color: goingConfig.color, borderColor: goingConfig.border }}
+        >
+          {goingConfig.label}
+        </div>
+      )}
 
       {/* Current bid display */}
       <div className="border-b border-zinc-700 px-4 py-4 flex items-center justify-between">
@@ -184,7 +206,7 @@ export default function AuctionWindow() {
       <div className="px-4 py-4 border-b border-zinc-700">
         <p className="text-xs text-zinc-500 tracking-widest mb-3">PLACE BID</p>
         <div className="flex gap-2">
-          {([100, 200, 300] as const).map((inc) => {
+          {([50, 100, 150] as const).map((inc) => {
             const bidAmount = currentBid + inc;
             const disabled = bidding || isTopBidder || !canAfford(inc);
             return (

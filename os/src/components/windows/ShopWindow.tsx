@@ -276,17 +276,26 @@ function ShopRow({
   onBuy: (item: ShopItem) => void;
 }) {
   const isTBC = item.tag === "TBC";
-  const canAfford = !isTBC && userXp >= item.price;
+  const isSoldOut = !!item.soldOut;
+  const canAfford = !isTBC && !isSoldOut && userXp >= item.price;
   const isBuying = purchasing === item.id;
   const isLimited = item.stock !== null;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+    <div className={`flex items-center gap-3 px-4 py-3 border-b border-zinc-800 transition-colors ${isSoldOut ? "opacity-50" : "hover:bg-zinc-800/50"}`}>
       <span className="text-xl w-7 text-center shrink-0">{item.icon}</span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-bold text-white truncate">{item.name}</p>
-          {item.tag && (
+          {isSoldOut && (
+            <span
+              className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 border flex-shrink-0"
+              style={{ borderColor: "rgb(113,113,122)", color: "rgb(113,113,122)" }}
+            >
+              SOLD OUT
+            </span>
+          )}
+          {!isSoldOut && item.tag && (
             <span
               className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 border flex-shrink-0"
               style={{
@@ -304,23 +313,23 @@ function ShopRow({
         <span className="text-xs font-bold text-yellow-400">
           {isTBC ? "TBC" : `${item.price} XP`}
         </span>
-        {isLimited && (
+        {!isSoldOut && isLimited && (
           <span className="text-[9px] text-zinc-500 tracking-widest">
             x{item.stock} left
           </span>
         )}
         <button
           onClick={() => onBuy(item)}
-          disabled={isBuying || !canAfford}
+          disabled={isBuying || !canAfford || isSoldOut}
           className="px-3 py-1 text-[10px] font-bold tracking-widest border transition-colors"
           style={{
             background:    canAfford && !isBuying ? "rgb(234,179,8)" : "transparent",
             borderColor:   canAfford && !isBuying ? "rgb(234,179,8)" : "rgb(63,63,70)",
             color:         canAfford && !isBuying ? "#000" : "rgba(255,255,255,0.25)",
-            cursor:        !canAfford || isBuying  ? "not-allowed" : "pointer",
+            cursor:        !canAfford || isBuying || isSoldOut ? "not-allowed" : "pointer",
           }}
         >
-          {isBuying ? "..." : isTBC ? "TBC" : canAfford ? "BUY" : "N/A"}
+          {isBuying ? "..." : isSoldOut ? "SOLD OUT" : isTBC ? "TBC" : canAfford ? "BUY" : "N/A"}
         </button>
       </div>
     </div>

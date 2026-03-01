@@ -162,6 +162,32 @@ function otpEmailHtml(code: string, email: string): string {
 app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:3000" }));
 app.use(express.json());
 
+// ── User cache — avoids a Convex round-trip on every request ──────────────────
+interface CachedUser {
+  _id: string;
+  displayName: string;
+  email: string;
+  xp: number;
+  isAdmin: boolean;
+  cachedAt: number;
+}
+const userCache = new Map<string, CachedUser>();
+const USER_CACHE_TTL = 30_000; // 30 seconds
+
+async function getCachedUser(id: string): Promise<CachedUser | null> {
+  const cached = userCache.get(id);
+  if (cached && Date.now() - cached.cachedAt < USER_CACHE_TTL) return cached;
+  const user = await convex.query(api.users.getById, { id: id as any });
+  if (!user) return null;
+  const entry: CachedUser = { ...(user as any), cachedAt: Date.now() };
+  userCache.set(id, entry);
+  return entry;
+}
+
+function invalidateUserCache(id: string) {
+  userCache.delete(id);
+}
+
 // ============================================================
 // Middleware: JWT Auth
 // ============================================================
@@ -379,7 +405,7 @@ app.post(
       }
 
       // Load user and check XP
-      const user = await convex.query(api.users.getById, { id: req.userId as any });
+      const user = await getCachedUser(req.userId!);
       if (!user) {
         res.status(404).json({ error: "User not found" });
         return;
@@ -630,7 +656,7 @@ app.post("/api/pay/qr/create", authMiddleware, async (req: AuthRequest, res) => 
     }
 
     // Look up requester name
-    const requester = await convex.query(api.users.getById, { id: req.userId as any });
+    const requester = await getCachedUser(req.userId!);
     if (!requester) {
       res.status(404).json({ error: "User not found" });
       return;
@@ -752,7 +778,7 @@ app.get("/api/quests", authMiddleware, async (req: AuthRequest, res) => {
 app.get("/api/admin/quests", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const quests = await convex.query(api.quests.listAll);
     res.json(quests);
@@ -766,7 +792,7 @@ app.get("/api/admin/quests", authMiddleware, async (req: AuthRequest, res) => {
 app.post("/api/admin/quests", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { title, description, xpReward, maxCompletions, icon } = req.body;
     if (!title || !description || !xpReward) {
@@ -792,7 +818,7 @@ app.post("/api/admin/quests", authMiddleware, async (req: AuthRequest, res) => {
 app.patch("/api/admin/quests/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { id } = req.params;
     const { active, title, description, xpReward, maxCompletions, icon } = req.body;
@@ -821,7 +847,7 @@ app.patch("/api/admin/quests/:id", authMiddleware, async (req: AuthRequest, res)
 app.post("/api/admin/quests/:id/verify", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { id: questId } = req.params;
     const { userId, note } = req.body;
@@ -843,7 +869,7 @@ app.post("/api/admin/quests/:id/verify", authMiddleware, async (req: AuthRequest
 app.post("/api/admin/quests/:id/verify-all", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
 
     const { id: questId } = req.params;
@@ -883,7 +909,7 @@ app.delete(
   async (req: AuthRequest, res) => {
     try {
       if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-      const user = await convex.query(api.users.getById, { id: req.userId as any });
+      const user = await getCachedUser(req.userId!);
       if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
       const { questId, userId } = req.params;
       await convex.mutation(internal.quests.revokeCompletion as any, {
@@ -903,7 +929,7 @@ app.delete(
 app.delete("/api/admin/quests/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { id } = req.params;
     await convex.mutation(internal.quests.deleteQuest as any, { questId: id as any });
@@ -1035,7 +1061,7 @@ const SEED_QUESTS: Array<{
 app.post("/api/admin/quests/seed", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const result = await convex.mutation(internal.quests.seedQuests as any, {
       quests: SEED_QUESTS,
@@ -1052,7 +1078,7 @@ app.post("/api/admin/quests/seed", authMiddleware, async (req: AuthRequest, res)
 app.get("/api/admin/users/search", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const q = (req.query.q as string) || "";
     const results = await convex.query(api.quests.searchUsers, { query: q });
@@ -1067,7 +1093,7 @@ app.get("/api/admin/users/search", authMiddleware, async (req: AuthRequest, res)
 app.post("/api/admin/participants/refresh", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const map = await refreshParticipants();
     res.json({ success: true, count: map.size });
@@ -1081,7 +1107,7 @@ app.post("/api/admin/participants/refresh", authMiddleware, async (req: AuthRequ
 app.post("/api/admin/xp", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
 
     const { userId, amount, reason } = req.body;
@@ -1090,7 +1116,7 @@ app.post("/api/admin/xp", authMiddleware, async (req: AuthRequest, res) => {
       return;
     }
 
-    const target = await convex.query(api.users.getById, { id: userId as any });
+    const target = await getCachedUser(userId as string);
     if (!target) { res.status(404).json({ error: "User not found" }); return; }
 
     let result: { xp: number; level: number };
@@ -1144,7 +1170,7 @@ app.post("/api/admin/xp", authMiddleware, async (req: AuthRequest, res) => {
 app.get("/api/admin/orders", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const orders = await convex.query(api.shopOrders.listAll);
     res.json(orders);
@@ -1158,7 +1184,7 @@ app.get("/api/admin/orders", authMiddleware, async (req: AuthRequest, res) => {
 app.post("/api/admin/orders/:id/fulfil", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { id } = req.params;
     const { note } = req.body;
@@ -1178,7 +1204,7 @@ app.post("/api/admin/orders/:id/fulfil", authMiddleware, async (req: AuthRequest
 app.post("/api/admin/orders/:id/cancel", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     const { id } = req.params;
     const { note } = req.body;
@@ -1270,7 +1296,7 @@ const ADD_XP_COST = 10;
 app.post("/api/music/add", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     // Admins add for free
     if (!user.isAdmin && user.xp < ADD_XP_COST) {
@@ -1315,7 +1341,7 @@ const BOOST_XP_COST = 25;
 app.post("/api/music/boost/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (user.xp < BOOST_XP_COST) { res.status(400).json({ error: `Insufficient XP (need ${BOOST_XP_COST})` }); return; }
     await convex.mutation(api.music.boostSong, {
@@ -1344,7 +1370,7 @@ app.post("/api/music/boost/:id", authMiddleware, async (req: AuthRequest, res) =
 app.post("/api/music/seek", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (!user.isAdmin) { res.status(403).json({ error: "Admin only" }); return; }
     const seconds = Number(req.body.seconds);
@@ -1365,7 +1391,7 @@ const STOP_XP_COST = 150;
 app.post("/api/music/participant-stop", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (user.xp < STOP_XP_COST) { res.status(400).json({ error: `Insufficient XP (need ${STOP_XP_COST})` }); return; }
     await convex.mutation(api.music.pause);
@@ -1392,7 +1418,7 @@ const SKIP_XP_COST = 350;
 app.post("/api/music/participant-skip", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (user.xp < SKIP_XP_COST) { res.status(400).json({ error: `Insufficient XP (need ${SKIP_XP_COST})` }); return; }
     await convex.mutation(api.music.skip);
@@ -1418,7 +1444,7 @@ app.post("/api/music/participant-skip", authMiddleware, async (req: AuthRequest,
 app.post("/api/music/play", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     await convex.mutation(api.music.play);
     res.json({ success: true });
@@ -1432,7 +1458,7 @@ app.post("/api/music/play", authMiddleware, async (req: AuthRequest, res) => {
 app.post("/api/music/pause", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     await convex.mutation(api.music.pause);
     res.json({ success: true });
@@ -1446,7 +1472,7 @@ app.post("/api/music/pause", authMiddleware, async (req: AuthRequest, res) => {
 app.post("/api/music/skip", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     await convex.mutation(api.music.skip);
     res.json({ success: true });
@@ -1471,7 +1497,7 @@ app.post("/api/music/song-ended", async (_req, res) => {
 app.delete("/api/music/remove/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     await convex.mutation(api.music.removeSong, { songId: req.params.id as any });
     res.json({ success: true });
@@ -1485,7 +1511,7 @@ app.delete("/api/music/remove/:id", authMiddleware, async (req: AuthRequest, res
 app.delete("/api/music/clear", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     await convex.mutation(api.music.clearQueue);
     res.json({ success: true });
@@ -1596,7 +1622,7 @@ app.post("/api/stocks/buy", authMiddleware, async (req: AuthRequest, res) => {
     const totalCost = Math.round(price * shares);
 
     // Check XP
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
     if (user.xp < totalCost) {
       res.status(400).json({ error: `Insufficient XP (need ${totalCost}, have ${user.xp})` }); return;
@@ -1625,7 +1651,8 @@ app.post("/api/stocks/buy", authMiddleware, async (req: AuthRequest, res) => {
       description: `Bought ${shares}x ${ticker} @ ${price.toFixed(2)} XP/share`,
     });
 
-    const updated = await convex.query(api.users.getById, { id: req.userId as any });
+    invalidateUserCache(req.userId!);
+    const updated = await getCachedUser(req.userId!);
     res.json({ success: true, spent: totalCost, pricePerShare: price, newXP: updated?.xp });
   } catch (error: any) {
     console.error("Stocks buy error:", error);
@@ -1691,7 +1718,8 @@ app.post("/api/stocks/sell", authMiddleware, async (req: AuthRequest, res) => {
       description: `Sold ${shares}x ${ticker} @ ${price.toFixed(2)} XP/share`,
     });
 
-    const updated = await convex.query(api.users.getById, { id: req.userId as any });
+    invalidateUserCache(req.userId!);
+    const updated = await getCachedUser(req.userId!);
     res.json({ success: true, gained: totalGain, pricePerShare: price, newXP: updated?.xp });
   } catch (error: any) {
     console.error("Stocks sell error:", error);
@@ -1714,7 +1742,7 @@ let marketOpen = true;   // when false, buy/sell are blocked and the tick loop i
 app.post("/api/admin/stocks/great-depression", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
 
     if (greatDepressionRunning) {
@@ -1773,7 +1801,7 @@ app.get("/api/admin/stocks/great-depression/status", authMiddleware, (_req: Auth
 app.post("/api/admin/stocks/more-depression", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
 
     if (moreDepressionRunning) {
@@ -1865,7 +1893,7 @@ app.get("/api/admin/stocks/more-depression/status", authMiddleware, (_req: AuthR
 app.post("/api/admin/stocks/unblock-sell", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     sellBlocked = false;
     res.json({ success: true });
@@ -1883,7 +1911,7 @@ app.get("/api/admin/stocks/market/status", authMiddleware, (_req: AuthRequest, r
 app.post("/api/admin/stocks/market/close", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     marketOpen = false;
     console.log("[Stocks] Market CLOSED by admin");
@@ -1897,13 +1925,41 @@ app.post("/api/admin/stocks/market/close", authMiddleware, async (req: AuthReque
 app.post("/api/admin/stocks/market/open", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
     marketOpen = true;
     console.log("[Stocks] Market OPENED by admin");
     res.json({ success: true, open: true });
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// POST /api/admin/stocks/deflate — instantly drop all prices by a percentage
+app.post("/api/admin/stocks/deflate", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await getCachedUser(req.userId!);
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    const percent = Number(req.body.percent);
+    if (!Number.isFinite(percent) || percent < 1 || percent > 99) {
+      res.status(400).json({ error: "percent must be between 1 and 99" });
+      return;
+    }
+
+    const factor = 1 - percent / 100;
+    const rows = await convex.query(api.stocks.getPrices);
+    const prices = (rows as any[]).map((r: any) => ({
+      ticker: r.ticker,
+      price: Math.max(1, r.price * factor),
+    }));
+    await convex.mutation(internal.stocks.forceSetPrices as any, { prices });
+
+    console.log(`[Stocks] All prices deflated by ${percent}% by admin`);
+    res.json({ success: true, percent });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed to deflate" });
   }
 });
 
@@ -1927,6 +1983,9 @@ interface AuctionState {
   itemImageUrl: string | null;
   startingBid: number;
   bids: AuctionBid[];
+  // Going-once sequence: null = open, "once" | "twice" | "sold"
+  goingPhase: null | "once" | "twice" | "sold";
+  goingPhaseAt: number | null;
   winnerId: string | null;
   winnerName: string | null;
   winnerAmount: number | null;
@@ -1941,6 +2000,8 @@ let auctionState: AuctionState = {
   itemImageUrl: null,
   startingBid: 100,
   bids: [],
+  goingPhase: null,
+  goingPhaseAt: null,
   winnerId: null,
   winnerName: null,
   winnerAmount: null,
@@ -1949,6 +2010,57 @@ let auctionState: AuctionState = {
 function getTopBid(state: AuctionState): AuctionBid | null {
   if (state.bids.length === 0) return null;
   return state.bids.reduce((top, b) => (b.amount > top.amount ? b : top));
+}
+
+// ── SSE broadcast ─────────────────────────────────────────────────────────────
+// Two subscriber sets: authenticated (AuctionWindow) and public (display page)
+
+type SseClient = { res: import("express").Response; authed: boolean };
+const sseClients = new Set<SseClient>();
+
+function auctionPublicPayload() {
+  const top = getTopBid(auctionState);
+  return {
+    active: auctionState.active,
+    itemId: auctionState.itemId,
+    itemName: auctionState.itemName,
+    itemDescription: auctionState.itemDescription,
+    itemIcon: auctionState.itemIcon,
+    itemImageUrl: auctionState.itemImageUrl,
+    startingBid: auctionState.startingBid,
+    currentBid: top?.amount ?? null,
+    currentBidder: top?.displayName ?? null,
+    recentBids: [...auctionState.bids].reverse().slice(0, 10).map((b) => ({
+      displayName: b.displayName,
+      amount: b.amount,
+      placedAt: b.placedAt,
+    })),
+    goingPhase: auctionState.goingPhase,
+    goingPhaseAt: auctionState.goingPhaseAt,
+    winnerId: auctionState.winnerId,
+    winnerName: auctionState.winnerName,
+    winnerAmount: auctionState.winnerAmount,
+  };
+}
+
+function auctionAuthedPayload() {
+  const top = getTopBid(auctionState);
+  return {
+    ...auctionPublicPayload(),
+    currentBidderId: top?.userId ?? null,
+  };
+}
+
+function broadcastAuction() {
+  const publicData = `data: ${JSON.stringify(auctionPublicPayload())}\n\n`;
+  const authedData = `data: ${JSON.stringify(auctionAuthedPayload())}\n\n`;
+  for (const client of sseClients) {
+    try {
+      client.res.write(client.authed ? authedData : publicData);
+    } catch {
+      sseClients.delete(client);
+    }
+  }
 }
 
 // GET /api/auction/state — public (authenticated users can poll)
@@ -1970,6 +2082,8 @@ app.get("/api/auction/state", authMiddleware, (_req: AuthRequest, res) => {
       .sort((a, b) => b.placedAt - a.placedAt)
       .slice(0, 10)
       .map((b) => ({ displayName: b.displayName, amount: b.amount, placedAt: b.placedAt })),
+    goingPhase: auctionState.goingPhase,
+    goingPhaseAt: auctionState.goingPhaseAt,
     winnerId: auctionState.winnerId,
     winnerName: auctionState.winnerName,
     winnerAmount: auctionState.winnerAmount,
@@ -1993,31 +2107,73 @@ app.get("/api/auction/state/public", (_req, res) => {
       .sort((a, b) => b.placedAt - a.placedAt)
       .slice(0, 10)
       .map((b) => ({ displayName: b.displayName, amount: b.amount, placedAt: b.placedAt })),
+    goingPhase: auctionState.goingPhase,
+    goingPhaseAt: auctionState.goingPhaseAt,
     winnerId: auctionState.winnerId,
     winnerName: auctionState.winnerName,
     winnerAmount: auctionState.winnerAmount,
   });
 });
 
-// POST /api/auction/bid — place a bid (+100, +200, or +300 above current)
+// GET /api/auction/events — SSE stream for authenticated clients (AuctionWindow)
+// Token passed as ?token=... query param because EventSource doesn't support headers
+app.get("/api/auction/events", (req, res) => {
+  const token = req.query.token as string | undefined;
+  let authed = false;
+  if (token) {
+    try {
+      jwt.verify(token, JWT_SECRET);
+      authed = true;
+    } catch { /* invalid token — treat as public */ }
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  // Send current state immediately
+  const payload = authed ? auctionAuthedPayload() : auctionPublicPayload();
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+
+  const client: SseClient = { res, authed };
+  sseClients.add(client);
+
+  req.on("close", () => sseClients.delete(client));
+});
+
+// GET /api/auction/events/public — SSE stream for unauthenticated display page
+app.get("/api/auction/events/public", (_req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  res.write(`data: ${JSON.stringify(auctionPublicPayload())}\n\n`);
+
+  const client: SseClient = { res, authed: false };
+  sseClients.add(client);
+
+  _req.on("close", () => sseClients.delete(client));
+});
+
+// POST /api/auction/bid — place a bid (+50, +100, or +150 above current)
 app.post("/api/auction/bid", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     if (!auctionState.active) { res.status(409).json({ error: "No active auction" }); return; }
 
     const { increment } = req.body as { increment: number };
-    if (![100, 200, 300].includes(increment)) {
-      res.status(400).json({ error: "Increment must be 100, 200, or 300" });
+    if (![50, 100, 150].includes(increment)) {
+      res.status(400).json({ error: "Increment must be 50, 100, or 150" });
       return;
     }
 
-    const user = await convex.query(api.users.getById, { id: req.userId as any });
+    const user = await getCachedUser(req.userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
     const top = getTopBid(auctionState);
-    const base = top?.amount ?? auctionState.startingBid - increment; // so base+increment = startingBid if no bids
-    const newAmount = (top ? top.amount : auctionState.startingBid - increment) + increment;
-    const finalAmount = top ? top.amount + increment : auctionState.startingBid;
+    const finalAmount = top ? top.amount + increment : auctionState.startingBid + increment;
 
     // Can't outbid yourself
     if (top?.userId === req.userId) {
@@ -2037,7 +2193,12 @@ app.post("/api/auction/bid", authMiddleware, async (req: AuthRequest, res) => {
       placedAt: Date.now(),
     });
 
+    // A new bid resets the going-once sequence
+    auctionState.goingPhase = null;
+    auctionState.goingPhaseAt = null;
+
     const newTop = getTopBid(auctionState)!;
+    broadcastAuction();
     res.json({ success: true, yourBid: finalAmount, currentBid: newTop.amount, currentBidder: newTop.displayName });
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed" });
@@ -2048,7 +2209,7 @@ app.post("/api/auction/bid", authMiddleware, async (req: AuthRequest, res) => {
 app.post("/api/admin/auction/start", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
 
     const { itemId, itemName, itemDescription, itemIcon, itemImageUrl, startingBid } = req.body;
@@ -2063,11 +2224,14 @@ app.post("/api/admin/auction/start", authMiddleware, async (req: AuthRequest, re
       itemImageUrl: itemImageUrl ?? null,
       startingBid: startingBid ?? 100,
       bids: [],
+      goingPhase: null,
+      goingPhaseAt: null,
       winnerId: null,
       winnerName: null,
       winnerAmount: null,
     };
     console.log(`[Auction] Started: ${itemName}`);
+    broadcastAuction();
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed" });
@@ -2078,7 +2242,7 @@ app.post("/api/admin/auction/start", authMiddleware, async (req: AuthRequest, re
 app.post("/api/admin/auction/close", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
 
     if (!auctionState.active) { res.status(409).json({ error: "No active auction" }); return; }
@@ -2091,17 +2255,71 @@ app.post("/api/admin/auction/close", authMiddleware, async (req: AuthRequest, re
       auctionState.winnerName = top.displayName;
       auctionState.winnerAmount = top.amount;
 
-      // Deduct XP from winner
-      await convex.mutation(internal.users.deductXP as any, {
+      // Broadcast immediately — don't wait for Convex
+      broadcastAuction();
+      res.json({ success: true, winner: top.displayName, amount: top.amount });
+      // Deduct XP async — fire and forget
+      convex.mutation(internal.users.deductXP as any, {
         id: top.userId as any,
         amount: top.amount,
         reason: `Auction win: ${auctionState.itemName}`,
-      });
+      }).catch((e: any) => console.error("[Auction] XP deduction failed:", e?.message));
       console.log(`[Auction] Closed. Winner: ${top.displayName} at ${top.amount} XP`);
-      res.json({ success: true, winner: top.displayName, amount: top.amount });
     } else {
       console.log(`[Auction] Closed. No bids.`);
+      broadcastAuction();
       res.json({ success: true, winner: null, amount: null });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Failed" });
+  }
+});
+
+// POST /api/admin/auction/going — advance going-once phase (once → twice → sold)
+// "sold" auto-closes and deducts XP. A new bid resets back to open.
+app.post("/api/admin/auction/going", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const admin = await getCachedUser(req.userId!);
+    if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+    if (!auctionState.active) { res.status(409).json({ error: "No active auction" }); return; }
+
+    const nextPhase = auctionState.goingPhase === null ? "once"
+      : auctionState.goingPhase === "once" ? "twice"
+      : "sold";
+
+    auctionState.goingPhase = nextPhase as "once" | "twice" | "sold";
+    auctionState.goingPhaseAt = Date.now();
+
+    if (nextPhase === "sold") {
+      // Auto-close: declare winner, deduct XP
+      const top = getTopBid(auctionState);
+      auctionState.active = false;
+      if (top) {
+        auctionState.winnerId = top.userId;
+        auctionState.winnerName = top.displayName;
+        auctionState.winnerAmount = top.amount;
+        // Broadcast immediately — don't wait for Convex (may be slow/unavailable)
+        broadcastAuction();
+        res.json({ success: true, phase: "sold", winner: top.displayName, amount: top.amount });
+        // Deduct XP async — fire and forget, invalidate cache so winner sees updated XP
+        invalidateUserCache(top.userId);
+        convex.mutation(internal.users.deductXP as any, {
+          id: top.userId as any,
+          amount: top.amount,
+          reason: `Auction win: ${auctionState.itemName}`,
+        }).catch((e: any) => console.error("[Auction] XP deduction failed:", e?.message));
+        console.log(`[Auction] SOLD to ${top.displayName} at ${top.amount} XP`);
+      } else {
+        console.log(`[Auction] SOLD — no bids, no winner`);
+        broadcastAuction();
+        res.json({ success: true, phase: "sold", winner: null, amount: null });
+      }
+    } else {
+      console.log(`[Auction] Going ${nextPhase}`);
+      broadcastAuction();
+      res.json({ success: true, phase: nextPhase });
     }
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed" });
@@ -2112,14 +2330,17 @@ app.post("/api/admin/auction/close", authMiddleware, async (req: AuthRequest, re
 app.post("/api/admin/auction/cancel", authMiddleware, async (req: AuthRequest, res) => {
   try {
     if (!req.userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const admin = await convex.query(api.users.getById, { id: req.userId as any });
+    const admin = await getCachedUser(req.userId!);
     if (!admin?.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
 
     auctionState.active = false;
+    auctionState.goingPhase = null;
+    auctionState.goingPhaseAt = null;
     auctionState.winnerId = null;
     auctionState.winnerName = null;
     auctionState.winnerAmount = null;
     console.log("[Auction] Cancelled by admin");
+    broadcastAuction();
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error?.message || "Failed" });

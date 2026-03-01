@@ -990,6 +990,11 @@ function MarketTab({ token }: { token: string | null }) {
   const [marketMessage, setMarketMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [marketToggling, setMarketToggling] = useState(false);
 
+  // Deflate stock state
+  const [deflatePercent, setDeflatePercent] = useState(20);
+  const [deflateMessage, setDeflateMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [deflating, setDeflating] = useState(false);
+
   // Poll both statuses every 3 s
   useEffect(() => {
     let cancelled = false;
@@ -1108,6 +1113,28 @@ function MarketTab({ token }: { token: string | null }) {
       setMarketMessage({ ok: false, text: "Network error" });
     } finally {
       setMarketToggling(false);
+    }
+  };
+
+  const deflateStock = async () => {
+    setDeflating(true);
+    setDeflateMessage(null);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/stocks/deflate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ percent: deflatePercent }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDeflateMessage({ ok: true, text: `All stocks deflated by ${deflatePercent}%.` });
+      } else {
+        setDeflateMessage({ ok: false, text: data.error ?? "Failed to deflate" });
+      }
+    } catch {
+      setDeflateMessage({ ok: false, text: "Network error" });
+    } finally {
+      setDeflating(false);
     }
   };
 
@@ -1305,6 +1332,52 @@ function MarketTab({ token }: { token: string | null }) {
           </button>
         )}
       </div>
+
+      {/* Deflate Stock card */}
+      <div className="border border-zinc-700 p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">🔻</span>
+          <div>
+            <p className="text-sm font-bold text-white tracking-wide">DEFLATE STOCKS</p>
+            <p className="text-xs text-zinc-400">
+              Instantly drop all stock prices by a chosen percentage.
+            </p>
+          </div>
+        </div>
+
+        {deflateMessage && (
+          <div
+            className={`px-3 py-2 text-xs tracking-widest border ${
+              deflateMessage.ok
+                ? "bg-green-900/30 border-green-600 text-green-400"
+                : "bg-red-900/30 border-red-600 text-red-400"
+            }`}
+          >
+            {deflateMessage.text}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-400 tracking-widest shrink-0">DROP BY</span>
+          <input
+            type="number"
+            min={1}
+            max={99}
+            value={deflatePercent}
+            onChange={(e) => setDeflatePercent(Math.min(99, Math.max(1, parseInt(e.target.value) || 1)))}
+            className="w-20 h-8 bg-zinc-900 border border-zinc-600 text-white text-xs text-center font-mono outline-none focus:border-zinc-400"
+          />
+          <span className="text-xs text-zinc-400">%</span>
+        </div>
+
+        <button
+          onClick={deflateStock}
+          disabled={deflating}
+          className="w-full py-2 text-xs font-bold tracking-widest bg-orange-700 hover:bg-orange-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {deflating ? "DEFLATING..." : `DEFLATE ALL −${deflatePercent}%`}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1322,6 +1395,7 @@ interface AuctionAdminState {
   currentBid: number | null;
   currentBidder: string | null;
   recentBids: { displayName: string; amount: number; placedAt: number }[];
+  goingPhase: null | "once" | "twice" | "sold";
   winnerId: string | null;
   winnerName: string | null;
   winnerAmount: number | null;
@@ -1379,17 +1453,19 @@ function AuctionTab({ token }: { token: string | null }) {
     }
   };
 
-  const closeAuction = async () => {
+  const advanceGoing = async () => {
     setActing(true);
     setMessage(null);
     try {
-      const res = await fetch(`${API_URL}/api/admin/auction/close`, {
+      const res = await fetch(`${API_URL}/api/admin/auction/going`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
-      setMessage({ ok: true, text: data.message ?? "Auction closed" });
+      if (data.phase === "sold") {
+        setMessage({ ok: true, text: data.winner ? `SOLD to ${data.winner} for ${data.amount} XP` : "SOLD — no bids" });
+      }
       await poll();
     } catch (e: any) {
       setMessage({ ok: false, text: e.message });
@@ -1451,13 +1527,36 @@ function AuctionTab({ token }: { token: string | null }) {
             )}
           </div>
           <p className="text-xs text-zinc-500">{auctionState.recentBids.length} bid{auctionState.recentBids.length !== 1 ? "s" : ""} placed</p>
+          {auctionState.goingPhase && (
+            <p className="text-xs tracking-widest font-bold"
+              style={{
+                color: auctionState.goingPhase === "once" ? "rgb(234,179,8)"
+                  : auctionState.goingPhase === "twice" ? "rgb(249,115,22)"
+                  : "rgb(239,68,68)",
+              }}
+            >
+              {auctionState.goingPhase === "once" ? "GOING ONCE..."
+                : auctionState.goingPhase === "twice" ? "GOING TWICE..."
+                : "SOLD!"}
+            </p>
+          )}
           <div className="flex gap-2 mt-1">
             <button
-              onClick={closeAuction}
+              onClick={advanceGoing}
               disabled={acting}
-              className="flex-1 py-2 text-xs font-bold tracking-widest border border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-black transition-colors disabled:opacity-40"
+              className="flex-1 py-2 text-xs font-bold tracking-widest border transition-colors disabled:opacity-40"
+              style={{
+                borderColor: auctionState.goingPhase === null ? "rgb(234,179,8)"
+                  : auctionState.goingPhase === "once" ? "rgb(249,115,22)"
+                  : "rgb(239,68,68)",
+                color: auctionState.goingPhase === null ? "rgb(234,179,8)"
+                  : auctionState.goingPhase === "once" ? "rgb(249,115,22)"
+                  : "rgb(239,68,68)",
+              }}
             >
-              {acting ? "..." : "CLOSE (DEDUCT XP)"}
+              {acting ? "..." : auctionState.goingPhase === null ? "GOING ONCE"
+                : auctionState.goingPhase === "once" ? "GOING TWICE"
+                : "SOLD!"}
             </button>
             <button
               onClick={cancelAuction}

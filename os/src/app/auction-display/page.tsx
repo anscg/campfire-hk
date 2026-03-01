@@ -570,6 +570,13 @@ function ActiveAuction({ state }: { state: AuctionPublicState }) {
             <p className="text-9xl">{state.itemIcon ?? "📦"}</p>
           )}
 
+          <p
+            className="text-4xl font-bold tracking-wide text-center"
+            style={{ color: "rgba(255,255,255,0.95)" }}
+          >
+            {state.itemName}
+          </p>
+
           <div className="text-center">
             <p
               className="text-xs tracking-widest mb-2"

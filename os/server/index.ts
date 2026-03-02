@@ -39,6 +39,7 @@ interface CockpitParticipant {
 // Hardcoded allowlist — emails that bypass the Cockpit API check
 const HARDCODED_ALLOWLIST = new Set([
   "elizabethkung2027@cdnis.edu.hk",
+  "zeanfender11@gmail.com",
 ]);
 
 
